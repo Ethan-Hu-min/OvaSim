@@ -11,8 +11,7 @@ struct  TriangleMeshSBTData
 	vec3f* normal;
 	vec3f* vertex;
 	vec3i* index;
-
-
+	int indexModelSBT;
 };
 
 struct segment {
@@ -26,6 +25,7 @@ struct USLaunchParams {
 		uint32_t* colorBuffer;
 		vec2i  size;
 	}frame;
+
 	struct {
 		vec3f position;
 		vec3f direction;
@@ -36,5 +36,5 @@ struct USLaunchParams {
 		float width;
 	}transducer;
 	OptixTraversableHandle traversable;
-	int maxBounce = 3;
+	int maxBounce = 6;
 };

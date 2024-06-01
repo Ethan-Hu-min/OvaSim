@@ -180,34 +180,6 @@
       "scaling": [1.0,1.0,1.0],
       "material": "Ovam",
       "outsideMaterial": "Water"
-    },
-    {
-      "file": "Ovam6.obj",
-      "deltas": [0.0,0.0,0.0],
-      "scaling": [1.0,1.0,1.0],
-      "material": "Ovam",
-      "outsideMaterial": "Water"
-    },
-    {
-      "file": "Ovam7.obj",
-      "deltas": [0.0,0.0,0.0],
-      "scaling": [1.0,1.0,1.0],
-      "material": "Ovam",
-      "outsideMaterial": "Water"
-    },
-    {
-      "file": "Ovam8.obj",
-      "deltas": [0.0,0.0,0.0],
-      "scaling": [1.0,1.0,1.0],
-      "material": "Ovam",
-      "outsideMaterial": "Water"
-    },
-    {
-      "file": "Ovam9.obj",
-      "deltas": [0.0,0.0,0.0],
-      "scaling": [1.0,1.0,1.0],
-      "material": "Ovam",
-      "outsideMaterial": "Water"
     }
   ],
   "origin": [0.0, 0.0, 0.0],

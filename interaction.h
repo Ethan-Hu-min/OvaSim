@@ -13,6 +13,7 @@ struct Interaction {
 	float distance;
 	vec3f position;
 	vec3f geomNormal;
+	int indexModelInt;
 	__forceinline__ __device__ Ray gene_ray(const vec3f& wi) const {
 		vec3f N = geomNormal;
 		if (dot(wi, geomNormal) > 0.0f) {

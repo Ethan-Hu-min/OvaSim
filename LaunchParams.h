@@ -10,7 +10,6 @@ struct  TriangleMeshSBTData
 	vec3f* normal;
 	vec3f* vertex;
 	vec3i* index;
-
 };
 
 struct LaunchParams {

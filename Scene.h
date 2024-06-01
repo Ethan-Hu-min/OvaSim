@@ -25,7 +25,7 @@ public:
 	void createWorldModels();
 	void setSceneDir(std::string dir);
 public:
-	std::string scene_dir;
+	std::string examplePath;
 	std::vector<Model> models;
 	std::vector<TriangleMesh*> worldmodel;
 	Transducer transducer;

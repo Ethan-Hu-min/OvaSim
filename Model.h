@@ -3,12 +3,18 @@
 #include <array>
 #include "gdt/gdt/math/AffineSpace.h"
 
+#define OVARY 1
+#define UTERUS 2
+#define INTESTINE 3
+#define BLADDER 4
+#define OVAM 5
+
 using namespace gdt;
 
 struct Material
 {
+	std::string mat_name;
 	float impedance, attenuation, mu0, mu1, sigma, specularity;
-
 };
 
 struct  TriangleMesh
@@ -16,6 +22,7 @@ struct  TriangleMesh
 	std::vector<vec3f> vertex;
 	std::vector<vec3f> normal;
 	std::vector<vec3i> index;
+	int indexMaterial;
 	int indexModel;
 };
 

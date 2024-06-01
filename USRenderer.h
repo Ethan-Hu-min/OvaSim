@@ -9,12 +9,15 @@ public:
 	USRenderer(const Scene* scene);
 	void render();
 	void resize(const vec2i& newSize);
+	void postProcess();
 	void downloadPixels(uint32_t h_pixels[]);
 	void setTransducer(const Transducer& transducer);
 	void getTransducer();
+	void loadTexture(std::vector<std::string>& filmname);
 	void changeTransducer(float angle, const vec3f& axis);
 	void run();
 	void clear();
+
 
 protected:
 	void initOptix();
@@ -50,8 +53,8 @@ protected:
 
 	USLaunchParams uslaunchParams;
 	CUDABuffer launchParamsBuffer;
-
 	CUDABuffer colorBuffer;
+	CUDABuffer postprocessBuffer;
 	Transducer lastSetTransducer;
 
 	const Scene* scene;
@@ -61,4 +64,6 @@ protected:
 	CUDABuffer asBuffer;
 
 	std::vector<uint32_t> pixels;
+	
+	std::string examplePath;
 };

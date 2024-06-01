@@ -25,6 +25,10 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
+set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/ImageProcess_cuda.cu
+  PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ
+  )
+
 
 OPTIX_add_sample_executable( OvaSim target_name
   OvaSim.cpp
@@ -46,9 +50,12 @@ OPTIX_add_sample_executable( OvaSim target_name
   GLFWindow.cpp
   GLFWindow.h
   interaction.h
-  OPTIONS -rdc true
+  ImageProcess_cuda.cu
+  ImageProcess_cuda.h
   )
+
 
 target_link_libraries( ${target_name}
   ${CUDA_LIBRARIES}
-  )
+ )
+ 

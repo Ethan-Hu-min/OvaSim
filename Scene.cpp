@@ -7,17 +7,18 @@
 Scene::Scene(){}
 
 void Scene::setSceneDir(std::string dir) {
-	scene_dir = dir;
+	examplePath = dir;
 }
 
 void Scene::parseConfig(std::string config_dir) {
 	nlohmann::json json;
-	std::ifstream infile{ (scene_dir + config_dir) };
+	std::ifstream infile{ (examplePath + config_dir) };
 	json << infile;
 	const auto& mats = json.at("materials");
 	if (mats.is_array()) {
 		for (const auto& mat : mats) {
 			materials[mat.at("name")] = {
+					mat.at("name"),
 					mat.at("impedance"),
 					mat.at("attenuation"),
 					mat.at("mu0"),
@@ -37,7 +38,7 @@ void Scene::parseConfig(std::string config_dir) {
 			const auto& deltas{ mesh_.at("deltas") };
 			const auto& scalings{ mesh_.at("scaling") };
 			//std::cout << mesh_.at("file") << std::endl;
-			models.emplace_back(Model(scene_dir+std::string((mesh_.at("file"))),
+			models.emplace_back(Model(examplePath +std::string((mesh_.at("file"))),
 				{ deltas[0], deltas[1],deltas[2] }, 
 				{ scalings[0], scalings[1],scalings[2] }, 
 				materials.at((mesh_.at("material"))),
@@ -50,7 +51,7 @@ void Scene::parseConfig(std::string config_dir) {
 		throw std::runtime_error("meshes must be an array");
 	}
 	for (int i = 0; i < models.size(); i++) {
-		models[i].indexModel = i;
+		models[i].indexModel = i+1;
 	}
 }
 

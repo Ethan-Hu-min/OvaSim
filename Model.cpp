@@ -67,8 +67,15 @@ void Model::loadOBJ() {
 					addVertex(mesh, attributes, idx1, knownVertices),
 					addVertex(mesh, attributes, idx2, knownVertices));
 				mesh->index.push_back(idx);
+
 			}
 			mesh->indexModel = this->indexModel;
+			if (material_inside.mat_name == "Ovary")mesh->indexMaterial = OVARY;
+			if (material_inside.mat_name == "Uterus")mesh->indexMaterial = UTERUS;
+			if (material_inside.mat_name == "Intestine")mesh->indexMaterial = INTESTINE;
+			if (material_inside.mat_name == "Bladder")mesh->indexMaterial = BLADDER;
+			if (material_inside.mat_name == "Ovam")mesh->indexMaterial = OVAM;
+
 			if (mesh->vertex.empty())delete mesh;
 			else this->meshes.push_back(mesh);
 		}

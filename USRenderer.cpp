@@ -3,8 +3,11 @@
 #include <sutil/sutil.h>
 #include <optix_stubs.h>
 #include <optix_stack_size.h>
-
 #include <iostream>
+#include "ImageProcess_cuda.h"
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 std::ostream& operator<<(std::ostream& os, const vec3f& v) {
     os << v.x << ", " << v.y << ", " << v.z;
@@ -31,6 +34,7 @@ struct  __align__(OPTIX_SBT_RECORD_ALIGNMENT) HitgroupRecord
 
 
 USRenderer::USRenderer(const Scene* scene) :scene(scene) {
+    examplePath = scene->examplePath;
     initOptix();
     std::cout << "#creating optix context ..." << std::endl;
     createContext();
@@ -54,8 +58,11 @@ USRenderer::USRenderer(const Scene* scene) :scene(scene) {
     std::cout << "#building SBT ..." << std::endl;
     buildSBT();
     launchParamsBuffer.alloc(sizeof(uslaunchParams));
-    std::cout << "sizeInBytes" << launchParamsBuffer.sizeInBytes << std::endl;
-    std::cout << "launchParams" << sizeof(uslaunchParams) << std::endl;
+    std::vector<std::string> textureFiles;
+    textureFiles.push_back("texture_ovary.jpg");
+    loadTexture(textureFiles);
+    std::cout << "sizeInBytes: " << launchParamsBuffer.sizeInBytes << std::endl;
+    std::cout << "launchParams: " << sizeof(uslaunchParams) << std::endl;
     std::cout << "#context, module, pipeline, etc, all set up ..." << std::endl;
     std::cout << GDT_TERMINAL_GREEN;
     std::cout << "#Scene fully set up" << std::endl;
@@ -383,6 +390,7 @@ void USRenderer::buildSBT() {
         rec.data.vertex = (vec3f*)vertexBuffer[meshID].d_pointer();
         rec.data.index = (vec3i*)indexBuffer[meshID].d_pointer();
         rec.data.normal = (vec3f*)normalBuffer[meshID].d_pointer();
+        rec.data.indexModelSBT = mesh->indexModel;
         hitgroupRecords.push_back(rec);
     }
     hitgroupRecordsBuffer.alloc_and_upload(hitgroupRecords);
@@ -412,22 +420,35 @@ void USRenderer::render() {
     // example, this will have to do)
     CUDA_SYNC_CHECK();
 }
-void USRenderer::setTransducer(const Transducer& transducer)
+
+void USRenderer::loadTexture(std::vector<std::string>& _filename) {
+    std::string filenameComplete;
+    for (auto s : _filename) {
+        filenameComplete = examplePath + s;
+        std::cout << filenameComplete << std::endl;
+    }
+    vec2i _res;
+    int _comp;
+    //uslaunchParams.texture.texture1 = stbi_load(filenameComplete.c_str(), &_res.x, &_res.y, &_comp, 4);
+    std::cout << "纹理加载成功" << std::endl;
+}
+
+void USRenderer::setTransducer(const Transducer& _transducer)
 {
-    lastSetTransducer = transducer;
-    uslaunchParams.transducer.width = transducer.t_width;
-    uslaunchParams.transducer.nums = transducer.t_nums;
-    uslaunchParams.transducer.angle = transducer.t_angle;
-    uslaunchParams.transducer.position = transducer.t_position;
-    uslaunchParams.transducer.direction = normalize(transducer.t_direction);
+    lastSetTransducer = _transducer;
+    uslaunchParams.transducer.width = _transducer.t_width;
+    uslaunchParams.transducer.nums = _transducer.t_nums;
+    uslaunchParams.transducer.angle = _transducer.t_angle;
+    uslaunchParams.transducer.position = _transducer.t_position;
+    uslaunchParams.transducer.direction = normalize(_transducer.t_direction);
     uslaunchParams.transducer.horizontal
         = normalize(cross(uslaunchParams.transducer.direction,
-            transducer.t_vertical));
+            _transducer.t_vertical));
     uslaunchParams.transducer.vertical
         = normalize(cross(uslaunchParams.transducer.horizontal,
             uslaunchParams.transducer.direction));
-    uslaunchParams.frame.size.x = transducer.t_nums;
-    uslaunchParams.frame.size.y = transducer.t_nums;
+    uslaunchParams.frame.size.x = _transducer.t_nums;
+    uslaunchParams.frame.size.y = _transducer.t_nums;
 
 }
 
@@ -474,7 +495,7 @@ void USRenderer::resize(const vec2i& newSize)
 
     // resize our cuda frame buffer
     colorBuffer.resize(newSize.x * newSize.y * sizeof(uint32_t));
-
+    postprocessBuffer.resize(newSize.x * newSize.y * sizeof(uint32_t));
     // update the uslaunch parameters that we'll pass to the optix
     // uslaunch:
     uslaunchParams.frame.size = newSize;
@@ -484,12 +505,18 @@ void USRenderer::resize(const vec2i& newSize)
 }
 
 
+void USRenderer::postProcess() {
+    postProcess_gpu((uint32_t*)colorBuffer.d_pointer(), (uint32_t*)postprocessBuffer.d_pointer(), uslaunchParams.frame.size.x, uslaunchParams.frame.size.y, 7, 7, stream);
+}
 
 void USRenderer::downloadPixels(uint32_t h_pixels[])
 {
     colorBuffer.download(h_pixels,
         uslaunchParams.frame.size.x * uslaunchParams.frame.size.y);
 }
+
+
+
 
 void USRenderer::clear() {
     this->resize(vec2i(this->uslaunchParams.frame.size.x , this->uslaunchParams.frame.size.y));
@@ -555,6 +582,7 @@ void USRenderer::run() {
         //this->clear();
         this->resize(vec2i(width, height));
         this->render();
+        this->postProcess();
         this->downloadPixels(this->pixels.data());
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, this->pixels.data());
         glClear(GL_COLOR_BUFFER_BIT);
