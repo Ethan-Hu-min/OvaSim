@@ -36,5 +36,5 @@ struct USLaunchParams {
 		float width;
 	}transducer;
 	OptixTraversableHandle traversable;
-	int maxBounce = 6;
+	int maxBounce = 12;
 };

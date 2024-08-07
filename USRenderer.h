@@ -4,6 +4,8 @@
 #include <GLFW/glfw3.h>
 #include <gl/GL.h>
 
+
+
 class USRenderer {
 public:
 	USRenderer(const Scene* scene);
@@ -28,7 +30,9 @@ protected:
 	void createHitgroupPrograms();
 	void createPipeline();
 	void buildSBT();
-	OptixTraversableHandle buildAccel();
+	void buildAccel();
+	void updateAccel(float changeTime);
+
 protected:
 	CUcontext cudaContext;
 	CUstream  stream;
@@ -51,6 +55,14 @@ protected:
 	CUDABuffer hitgroupRecordsBuffer;
 	OptixShaderBindingTable sbt = {};
 
+	OptixTraversableHandle asHandle{ 0 };
+	std::vector<OptixBuildInput> triangleInput;
+	CUDABuffer tempBuffer;
+	CUDABuffer outputBuffer;
+	OptixAccelEmitDesc emitDesc;
+	OptixAccelBuildOptions accelOptions = {};
+	OptixAccelBuildOptions accelOptionsUpdate = {};
+
 	USLaunchParams uslaunchParams;
 	CUDABuffer launchParamsBuffer;
 	CUDABuffer colorBuffer;
@@ -61,9 +73,20 @@ protected:
 	std::vector<CUDABuffer> vertexBuffer;
 	std::vector<CUDABuffer> indexBuffer;
 	std::vector<CUDABuffer> normalBuffer;
+
+	std::vector<CUDABuffer> originVertexBuffer;
+
 	CUDABuffer asBuffer;
+	std::vector<CUdeviceptr> d_vertices;
+	std::vector<CUdeviceptr> d_indices;
+
+	std::vector<CUdeviceptr> origin_vertices;
+	std::vector<uint32_t> triangleInputFlags;
 
 	std::vector<uint32_t> pixels;
-	
 	std::string examplePath;
+
+	int numMeshes;
+
+
 };

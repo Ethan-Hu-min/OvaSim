@@ -131,7 +131,7 @@ extern "C" __global__ void __closesthit__radiance()
                     var_color = 20;
                     mean_color = 30;
                 }
-                float rand_color = (rand_R * cos(rand_theta)) * var_color - mean_color;
+                float rand_color = ((rand_R * cos(rand_theta)) * var_color - mean_color) * ((pace / relative_dis) / 5 + 0.8);
                 int colorvalue = int(abs(rand_color)) % 255;
                 //printf("%d", colorvalue);
                 //const int randcolor = rand_color * 255;
@@ -234,7 +234,6 @@ extern "C" __global__ void __raygen__renderFrame()
         if (relative_x >= 0 && relative_x < optixLaunchParams.frame.size.x
             && relative_y >= 0 && relative_y < optixLaunchParams.frame.size.y) {
             const uint32_t fbIndex = relative_x + relative_y * optixLaunchParams.frame.size.x;
-
             optixLaunchParams.frame.colorBuffer[fbIndex] = 0xffffffff;
         }          
         ray_t.origin = isect.position + ray_t.direction * 0.001f;

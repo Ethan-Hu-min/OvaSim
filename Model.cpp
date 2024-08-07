@@ -38,6 +38,19 @@ int addVertex(TriangleMesh* mesh, tinyobj::attrib_t& attributes, const tinyobj::
 	return newID;
 }
 
+vec3f calculCenter(tinyobj::attrib_t& attributes) {
+	const int vertex_size = (const int)attributes.vertices.size();
+	double vertex_sum_x = 0.0;
+	double vertex_sum_y = 0.0;
+	double vertex_sum_z = 0.0;
+	for (int i = 0; i < vertex_size/3; i++) {
+		vertex_sum_x += attributes.vertices[i * 3];
+		vertex_sum_y += attributes.vertices[i * 3 + 1];
+		vertex_sum_z += attributes.vertices[i * 3 + 2];
+	}
+	return vec3f(vertex_sum_x / float(vertex_size/3), vertex_sum_y / float(vertex_size/3), vertex_sum_z / float(vertex_size/3));
+}
+
 void Model::loadOBJ() {
 	std::cout << this->filename << std::endl;
 	tinyobj::attrib_t attributes;
@@ -49,8 +62,15 @@ void Model::loadOBJ() {
 	if (!readOK) {
 		throw std::runtime_error("Could not read OBJ model from " + this->filename + ":" + err);
 	}
+	std::cout << "model index: " << this->indexModel << std::endl;
 	std::cout << "Done loading obj file - found " << shapes.size() << " shapes " << std::endl;
 	//std::cout << shapes[0].mesh.indices[0].vertex_index << (vec3f)attributes.vertices[1] << std::endl;
+	
+	this->modelCenter = calculCenter(attributes);
+	std::cout << "modelCenter: " << this->modelCenter << std::endl;
+
+
+
 	for (const auto& shape:shapes) {
 		std::set<int> materialIDs;
 		for (auto faceMatId : shape.mesh.material_ids)

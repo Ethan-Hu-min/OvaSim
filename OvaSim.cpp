@@ -146,8 +146,8 @@ int main() {
 		std::cout << scene->models[i].meshes.size() << std::endl;
 	}
 	std::cout << scene->worldmodel.size();
-	scene->setTransducer(vec3f(-50.0f, -100.0f, 150.0f),
-		vec3f(0.197562f, 0.729760f, -0.654538f), vec3f(0.728110f, -0.556300f, -0.400482f), 512, 90.0,512.0, 512.0);
+	scene->setTransducer(vec3f(50.0f, -200.0f, 100.0f),
+		vec3f(0.197562f, 0.729760f, -0.654538f), vec3f(0.728110f, -0.556300f, -0.400482f), 512, 120.0,512.0, 512.0);
 
 	USRenderer* render = new USRenderer(scene);
 	render->setTransducer(scene->transducer);

@@ -45,4 +45,5 @@ class Model
 		std::array<float, 3> scaling;
 		Material& material_inside;
 		Material& material_outside;
+		vec3f modelCenter;
 };

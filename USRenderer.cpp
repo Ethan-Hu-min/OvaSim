@@ -5,6 +5,7 @@
 #include <optix_stack_size.h>
 #include <iostream>
 #include "ImageProcess_cuda.h"
+#include "ChangeVertices_cuda.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -48,8 +49,8 @@ USRenderer::USRenderer(const Scene* scene) :scene(scene) {
     createMissPrograms();
     std::cout << "#creating hitgroup programs ..." << std::endl;
     createHitgroupPrograms();
-
-    uslaunchParams.traversable = buildAccel();
+    buildAccel();
+    uslaunchParams.traversable = asHandle;
     std::cout << " handle5:" << int(uslaunchParams.traversable) << std::endl;
 
     std::cout << "#setting up optix pipeline ..." << std::endl;
@@ -121,7 +122,7 @@ void USRenderer::createModule() {
     pipelineCompileOptions.exceptionFlags = OPTIX_EXCEPTION_FLAG_NONE;
     pipelineCompileOptions.pipelineLaunchParamsVariableName = "optixLaunchParams";
 
-    pipelineLinkOptions.maxTraceDepth = 2;
+    pipelineLinkOptions.maxTraceDepth = 1;
     size_t      inputSize = 0;
     const char* input = sutil::getInputData(OPTIX_SAMPLE_NAME, OPTIX_SAMPLE_DIR, "USdevicePrograms.cu", inputSize);
     //const std::string ptxCode = embedded_ptx_code;
@@ -239,24 +240,26 @@ void USRenderer::createPipeline() {
     if (sizeof_log > 1) PRINT(log);
 }
 
-OptixTraversableHandle USRenderer::buildAccel() {
+void USRenderer::buildAccel() {
     PING;
-    const int numMeshes = scene->worldmodel.size();
+    numMeshes = scene->worldmodel.size();
     PRINT(numMeshes);
     vertexBuffer.resize(numMeshes);
     indexBuffer.resize(numMeshes);
     normalBuffer.resize(numMeshes);
+    originVertexBuffer.resize(numMeshes);
+    origin_vertices.resize(numMeshes);
 
-
-    OptixTraversableHandle asHandle{ 0 };
-    std::vector<OptixBuildInput> triangleInput(numMeshes);
-    std::vector<CUdeviceptr> d_vertices(numMeshes);
-    std::vector<CUdeviceptr> d_indices(numMeshes);
-    std::vector<uint32_t> triangleInputFlags(numMeshes);
+    triangleInput.resize(numMeshes);
+    d_vertices.resize(numMeshes);
+    d_indices.resize(numMeshes);
+    triangleInputFlags.resize(numMeshes);
 
     for (int meshID = 0; meshID < numMeshes; meshID++) {
         TriangleMesh& mesh = *scene->worldmodel[meshID];
         vertexBuffer[meshID].alloc_and_upload(mesh.vertex);
+        originVertexBuffer[meshID].alloc_and_upload(mesh.vertex);
+
         indexBuffer[meshID].alloc_and_upload(mesh.index);
         if (!mesh.normal.empty())
             normalBuffer[meshID].alloc_and_upload(mesh.normal);
@@ -267,7 +270,7 @@ OptixTraversableHandle USRenderer::buildAccel() {
 
         d_vertices[meshID] = vertexBuffer[meshID].d_pointer();
         d_indices[meshID] = indexBuffer[meshID].d_pointer();
-
+        origin_vertices[meshID] = originVertexBuffer[meshID].d_pointer();
         triangleInput[meshID].triangleArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
         triangleInput[meshID].triangleArray.vertexStrideInBytes = sizeof(vec3f);
         triangleInput[meshID].triangleArray.numVertices = (int)mesh.vertex.size();
@@ -286,10 +289,8 @@ OptixTraversableHandle USRenderer::buildAccel() {
         triangleInput[meshID].triangleArray.sbtIndexOffsetSizeInBytes = 0;
         triangleInput[meshID].triangleArray.sbtIndexOffsetStrideInBytes = 0;
     }
-    OptixAccelBuildOptions accelOptions = {};
-    accelOptions.buildFlags = OPTIX_BUILD_FLAG_NONE
-        | OPTIX_BUILD_FLAG_ALLOW_COMPACTION
-        ;
+
+    accelOptions.buildFlags = OPTIX_BUILD_FLAG_ALLOW_COMPACTION | OPTIX_BUILD_FLAG_ALLOW_UPDATE;
     accelOptions.motionOptions.numKeys = 1;
     accelOptions.operation = OPTIX_BUILD_OPERATION_BUILD;
 
@@ -304,18 +305,16 @@ OptixTraversableHandle USRenderer::buildAccel() {
     CUDABuffer compactedSizeBuffer;
     compactedSizeBuffer.alloc(sizeof(uint64_t));
 
-    OptixAccelEmitDesc emitDesc;
+    
     emitDesc.type = OPTIX_PROPERTY_TYPE_COMPACTED_SIZE;
     emitDesc.result = compactedSizeBuffer.d_pointer();
 
-    CUDABuffer tempBuffer;
-    tempBuffer.alloc(blasBufferSizes.tempSizeInBytes);
 
-    CUDABuffer outputBuffer;
+    tempBuffer.alloc(blasBufferSizes.tempSizeInBytes);
     outputBuffer.alloc(blasBufferSizes.outputSizeInBytes);
-    std::cout <<" handle1:" << int(asHandle) << std::endl;
-    OPTIX_CHECK(optixAccelBuild(optixContext,
-        /* stream */0,
+    OPTIX_CHECK(optixAccelBuild(
+        optixContext,
+        0,
         &accelOptions,
         triangleInput.data(),
         (int)numMeshes,
@@ -330,24 +329,52 @@ OptixTraversableHandle USRenderer::buildAccel() {
         &emitDesc, 1
     ));
     CUDA_SYNC_CHECK();
-    std::cout << " handle2:" << int(asHandle) << std::endl;
     uint64_t compactedSize;
     compactedSizeBuffer.download(&compactedSize, 1);
 
-    asBuffer.alloc(compactedSize);
-    OPTIX_CHECK(optixAccelCompact(optixContext,
-        /*stream:*/0,
-        asHandle,
-        asBuffer.d_pointer(),
-        asBuffer.sizeInBytes,
-        &asHandle));
+    //asBuffer.alloc(compactedSize);
+    //OPTIX_CHECK(optixAccelCompact(optixContext,
+    //    stream,
+    //    asHandle,
+    //    asBuffer.d_pointer(),
+    //    asBuffer.sizeInBytes,
+    //    &asHandle));
     CUDA_SYNC_CHECK();
-    std::cout << " handle3:" << int(asHandle) << std::endl;
-    outputBuffer.free();
     tempBuffer.free();
     compactedSizeBuffer.free();
-    std::cout << " handle4:" << int(asHandle) << std::endl;
-    return asHandle;
+    tempBuffer.alloc(blasBufferSizes.tempSizeInBytes);
+    CUDA_SYNC_CHECK();
+}
+
+void USRenderer::updateAccel( float changeTime ) {
+
+    int changeModelID = 10;
+    changeVerticesPos((float3*)*triangleInput.data()[changeModelID].triangleArray.vertexBuffers,
+        (float3*)origin_vertices[changeModelID],
+        make_float3(scene->models[changeModelID].modelCenter.x, scene->models[changeModelID].modelCenter.y, scene->models[changeModelID].modelCenter.z),
+        triangleInput.data()[changeModelID].triangleArray.numVertices,
+        changeTime
+        );
+
+    accelOptionsUpdate.buildFlags = OPTIX_BUILD_FLAG_ALLOW_COMPACTION | OPTIX_BUILD_FLAG_ALLOW_UPDATE;
+    accelOptionsUpdate.operation = OPTIX_BUILD_OPERATION_UPDATE;
+    OPTIX_CHECK(optixAccelBuild(
+        optixContext,
+        0,
+        &accelOptionsUpdate,
+        triangleInput.data(),
+        (int)numMeshes,
+        tempBuffer.d_pointer(),
+        tempBuffer.sizeInBytes,
+
+        outputBuffer.d_pointer(),
+        outputBuffer.sizeInBytes,
+
+        &asHandle,
+
+        nullptr, 0
+    ));
+    CUDA_SYNC_CHECK();
 }
 
 void USRenderer::buildSBT() {
@@ -401,6 +428,7 @@ void USRenderer::buildSBT() {
 
 
 void USRenderer::render() {
+
     //std::cout << " bug1" << std::endl;
     launchParamsBuffer.upload(&uslaunchParams, 1);
     OPTIX_CHECK(optixLaunch(/*! pipeline we're launching launch: */
@@ -552,7 +580,7 @@ void USRenderer::run() {
     this->resize(vec2i(width,height));
 
     assert(glfwInit() && "GLFW initialization failed");
-    GLFWwindow* window = glfwCreateWindow(1200, 1200,"OvaSim", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(1500, 900,"OvaSim", NULL, NULL);
     if (!window) {
         glfwTerminate();
         throw std::runtime_error("window has not be created");
@@ -568,11 +596,12 @@ void USRenderer::run() {
     int frame = 0;
     //glfwSwapInterval(1);
     double lastTime = glfwGetTime();
+
     while (!glfwWindowShouldClose(window)) {
         frame++;
         double currentTime = glfwGetTime();
         if ((currentTime - lastTime) >= 1.0) {
-            std::cout << "fps:" << frame <<std::endl;
+            std::cout << "fps:" << frame <<"time:"<< currentTime<< std::endl;
             frame = 0;
             lastTime = currentTime;
         }        
@@ -580,6 +609,7 @@ void USRenderer::run() {
         //    | (120 << 0) | (int(frame % 256) << 8) | (200 << 16);
         //std::fill(this->pixels.begin(), this->pixels.end(), rgba);
         //this->clear();
+        this->updateAccel(currentTime);
         this->resize(vec2i(width, height));
         this->render();
         this->postProcess();

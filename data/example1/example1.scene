@@ -122,7 +122,7 @@
       "file": "Uterus.obj",
       "deltas": [0.0,0.0,0.0],
       "scaling": [1.0,1.0,1.0],
-      "material": "Uterus",
+      "material": "Uterus", 
       "outsideMaterial": "Water"
     },
     {
@@ -150,63 +150,77 @@
       "file": "Ovam1.obj",
       "deltas": [0.0,0.0,0.0],
       "scaling": [1.0,1.0,1.0],
-      "material": "Ovam",
+      "material": "Ovary",
       "outsideMaterial": "Water"
     },
     {
       "file": "Ovam2.obj",
       "deltas": [0.0,0.0,0.0],
       "scaling": [1.0,1.0,1.0],
-      "material": "Ovam",
+      "material": "Ovary",
       "outsideMaterial": "Water"
     },
     {
       "file": "Ovam3.obj",
       "deltas": [0.0,0.0,0.0],
       "scaling": [1.0,1.0,1.0],
-      "material": "Ovam",
+      "material": "Ovary",
       "outsideMaterial": "Water"
     },
     {
       "file": "Ovam4.obj",
       "deltas": [0.0,0.0,0.0],
       "scaling": [1.0,1.0,1.0],
-      "material": "Ovam",
+      "material": "Ovary",
       "outsideMaterial": "Water"
     },
     {
       "file": "Ovam5.obj",
       "deltas": [0.0,0.0,0.0],
       "scaling": [1.0,1.0,1.0],
-      "material": "Ovam",
+      "material": "Ovary",
       "outsideMaterial": "Water"
     },
     {
       "file": "Ovam6.obj",
       "deltas": [0.0,0.0,0.0],
       "scaling": [1.0,1.0,1.0],
-      "material": "Ovam",
+      "material": "Ovary",
       "outsideMaterial": "Water"
     },
     {
       "file": "Ovam7.obj",
       "deltas": [0.0,0.0,0.0],
       "scaling": [1.0,1.0,1.0],
-      "material": "Ovam",
+      "material": "Ovary",
       "outsideMaterial": "Water"
     },
     {
       "file": "Ovam8.obj",
       "deltas": [0.0,0.0,0.0],
       "scaling": [1.0,1.0,1.0],
-      "material": "Ovam",
+      "material": "Ovary",
       "outsideMaterial": "Water"
     },
     {
       "file": "Ovam9.obj",
       "deltas": [0.0,0.0,0.0],
       "scaling": [1.0,1.0,1.0],
-      "material": "Ovam",
+      "material": "Ovary",
+      "outsideMaterial": "Water"
+    },
+    {
+      "file": "Ovam10.obj",
+      "deltas": [0.0,0.0,0.0],
+      "scaling": [1.0,1.0,1.0],
+      "material": "Ovary",
+      "outsideMaterial": "Water"
+    },
+    {
+      "file": "Ovam11.obj",
+      "deltas": [0.0,0.0,0.0],
+      "scaling": [1.0,1.0,1.0],
+      "material": "Ovary",
       "outsideMaterial": "Water"
     }
   ],

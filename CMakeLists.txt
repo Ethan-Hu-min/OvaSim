@@ -25,8 +25,10 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/ImageProcess_cuda.cu
-  PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ
+set_source_files_properties(
+	${CMAKE_CURRENT_SOURCE_DIR}/ImageProcess_cuda.cu
+	${CMAKE_CURRENT_SOURCE_DIR}/ChangeVertices_cuda.cu
+	PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ
   )
 
 
@@ -52,6 +54,8 @@ OPTIX_add_sample_executable( OvaSim target_name
   interaction.h
   ImageProcess_cuda.cu
   ImageProcess_cuda.h
+  ChangeVertices_cuda.cu
+  ChangeVertices_cuda.h
   )
 
 
