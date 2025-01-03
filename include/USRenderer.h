@@ -1,0 +1,114 @@
+#include "CUDABuffer.h"
+#include "USLaunchParams.h"
+#include "Scene.h"
+#include <GLFW/glfw3.h>
+#include <gl/GL.h>
+
+//
+//
+//
+class USRenderer {
+public:
+	USRenderer(const Scene* scene);
+	~USRenderer();
+	void render();
+	void resize(const vec2i& newSize);
+
+	void paraResize(int w, int h);
+
+	void postProcess();
+	void downloadPixels();
+	void setTransducer(const Transducer& transducer);
+	void getTransducer();
+	void changeTransducer(float angle, const vec3f& axis);
+	void setNeedle(float r_angle, float r_depth);
+	void changeNeedle(float changeDepth);
+	void changeSwitch(bool _switch);
+
+	int getCollideOvamId();
+
+	void downloadCollideInfo(uint8_t _collide_models_id[], vec3f _collide_models_pos[]);
+	void loadTexture(std::vector<std::string>& filmname);
+
+	uint32_t* pixelsData();
+
+	void run();
+	void clear();
+
+
+protected:
+	void initOptix();
+	void createContext();
+	void createModule();
+	void createRaygenPrograms();
+	void createMissPrograms();
+	void createHitgroupPrograms();
+	void createPipeline();
+	void buildSBT();
+	void buildAccel();
+	void updateAccel();
+
+
+protected:
+	CUcontext cudaContext;
+	CUstream  stream;
+	cudaDeviceProp deviceProps;
+	OptixDeviceContextOptions contextOptions = {};
+	OptixDeviceContext optixContext;
+
+	OptixPipeline pipeline;
+	OptixPipelineCompileOptions pipelineCompileOptions = {};
+	OptixPipelineLinkOptions    pipelineLinkOptions = {};
+
+	OptixModule module = nullptr;
+	OptixModuleCompileOptions moduleCompileOptions = {};
+
+	std::vector<OptixProgramGroup> raygenPGs;
+	CUDABuffer raygenRecordsBuffer;
+	std::vector<OptixProgramGroup> missPGs;
+	CUDABuffer missRecordsBuffer;
+	std::vector<OptixProgramGroup> hitgroupPGs;
+	CUDABuffer hitgroupRecordsBuffer;
+	OptixShaderBindingTable sbt = {};
+
+	OptixTraversableHandle asHandle{ 0 };
+	std::vector<OptixBuildInput> triangleInput;
+	CUDABuffer tempBuffer;
+	CUDABuffer outputBuffer;
+	OptixAccelEmitDesc emitDesc;
+	OptixAccelBuildOptions accelOptions = {};
+	OptixAccelBuildOptions accelOptionsUpdate = {};
+
+	USLaunchParams uslaunchParams;
+	CUDABuffer launchParamsBuffer;
+	CUDABuffer colorBuffer;
+	CUDABuffer postprocessBuffer;
+	Transducer lastSetTransducer;
+	CUDABuffer collide_models_id;
+	CUDABuffer collide_models_pos;
+
+	const Scene* scene = nullptr;
+	std::vector<CUDABuffer> vertexBuffer;
+	std::vector<CUDABuffer> indexBuffer;
+	std::vector<CUDABuffer> normalBuffer;
+
+	std::vector<CUDABuffer> originVertexBuffer;
+
+	CUDABuffer asBuffer;
+	std::vector<CUdeviceptr> d_vertices;
+	std::vector<CUdeviceptr> d_indices;
+
+	std::vector<CUdeviceptr> origin_vertices;
+	std::vector<uint32_t> triangleInputFlags;
+
+	std::vector<uint32_t> pixels;
+	std::vector<uint8_t> collide_id;
+	std::vector<vec3f> collide_pos;
+	std::unordered_map<int, float> ovam_scale;
+	std::string examplePath = "";
+
+	int numMeshes = 0;
+
+	int now_collide_model = -1;
+
+};

@@ -15,4 +15,9 @@ public:
 
 private:
     Ui::OvaSimClass ui;
+
+private slots:
+    void on_startbutton_clicked();
+    void on_historybutton_clicked();
+    void on_devicebutton_clicked();
 };

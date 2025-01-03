@@ -1,4 +1,4 @@
-#.rst:
+﻿#.rst:
 # FindCUDA
 # --------
 #
@@ -1376,7 +1376,7 @@ macro(CUDA_WRAP_SRCS cuda_target format generated_files)
 
   # Set up all the command line flags here, so that they can be overridden on a per target basis.
 
-  set(nvcc_flags "")
+  set(nvcc_flags )
 
   # Emulation if the card isn't present.
   if (CUDA_BUILD_EMULATION)
@@ -1428,6 +1428,7 @@ macro(CUDA_WRAP_SRCS cuda_target format generated_files)
   else()
     set( CUDA_build_configuration "${CMAKE_BUILD_TYPE}")
   endif()
+  message("CUDA_build_configuration: ${CUDA_build_configuration}")
 
   # Initialize our list of includes with the user ones followed by the CUDA system ones.
   set(CUDA_NVCC_INCLUDE_ARGS ${CUDA_NVCC_INCLUDE_ARGS_USER} "-I${CUDA_INCLUDE_DIRS}")
@@ -1483,6 +1484,7 @@ macro(CUDA_WRAP_SRCS cuda_target format generated_files)
       set( EXTRA_FS_ARG "/FS" )
     endif()
   endif()
+  set( EXTRA_FS_ARG "/FS" )
 
 
   # Only add the CMAKE_{C,CXX}_FLAGS if we are propagating host flags.  We

@@ -1,6 +1,7 @@
-cmake_minimum_required(VERSION 3.16)
-project(OvaSim LANGUAGES CXX C)
+﻿cmake_minimum_required(VERSION 3.7 FATAL_ERROR)
+project(OvaSim LANGUAGES CXX C) 
 
+message("now CMake：${CMAKE_VERSION}")
 include(qt.cmake)
 
 set(CMAKE_AUTOUIC ON)
@@ -21,6 +22,7 @@ find_package(Qt${QT_VERSION_MAJOR}
         Core
         Gui
         Widgets
+        OpenGLWidgets
 )
 qt_standard_project_setup()
 
@@ -45,6 +47,9 @@ set(CMAKE_MODULE_PATH
   )
  message("CMAKE_MODULE_PATH = " "${CMAKE_MODULE_PATH}")
 
+
+add_definitions(-DCMAKE_ROOT_PATH="${CMAKE_CURRENT_SOURCE_DIR}")
+
 # Set the default build to Release.  Note this doesn't do anything for the VS
 # default build target which defaults to Debug when you first start it.
 IF(NOT CMAKE_BUILD_TYPE)
@@ -59,7 +64,7 @@ ENDIF(NOT CMAKE_BUILD_TYPE)
 # overrided by individual libraries later.
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
-# add Qt
+# add openHaptics
  include_directories(
 	${OH_SDK_BASE}/include
 	${OH_SDK_BASE}/utilities/include 
@@ -71,12 +76,14 @@ link_directories(
 	${OH_SDK_BASE}/utilities/lib/${Platform}/${CMAKE_BUILD_TYPE}
 	${OH_SDK_BASE}/QuickHaptics/lib/${Platform}/${CMAKE_BUILD_TYPE}
 )
-
+# add QT
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS        
         Core
         Gui
-        Widgets )
+        Widgets
+        OpenGLWidgets
+)
 
 # Include all CMake Macros.
 include(Macros)
@@ -343,6 +350,7 @@ set(SAMPLES_RELATIVE_INCLUDE_DIRS "\\
   \"cuda\", \\
   \"sutil\", \\
   \"shaders\",\\
+  \"kernels\",\\
   \".\", ")
 
 # NVRTC absolute include paths to the headers used to build the samples
@@ -438,78 +446,64 @@ add_subdirectory(sutil)
 add_subdirectory(support)
 #################################################################
 
-# Now that everything is done, indicate that we have finished configuring at least once.
-# We use this variable to set certain defaults only on the first pass, so that we don't
-# continually set them over and over again.
-set(PASSED_FIRST_CONFIGURE ON CACHE INTERNAL "Already Configured once?")
 
-set( HEADERS
-   include/mainWindow.h
-   include/mainWindow.ui
-   include/optixhello.h
+file(GLOB HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/include/*.ui")
+file(GLOB SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+file(GLOB SHADERS "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.cu")
+file(GLOB KERNELS "${CMAKE_CURRENT_SOURCE_DIR}/kernels/*.cu" "${CMAKE_CURRENT_SOURCE_DIR}/kernels/*.h"  )
+
+
+set_source_files_properties(
+${CMAKE_CURRENT_SOURCE_DIR}/kernels/ChangeVertices_cuda.cu
+${CMAKE_CURRENT_SOURCE_DIR}/kernels/ImageProcess_cuda.cu
+PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ
 )
 
-set( SOURCES
-   src/main.cpp
-   src/mainWindow.cpp
-)
+get_source_file_property(format1 ${CMAKE_CURRENT_SOURCE_DIR}/kernels/ImageProcess_cuda.cu CUDA_SOURCE_PROPERTY_FORMAT)
+message("ImageProcess_cuda.cu format: ${format1}")
+get_source_file_property(format2 ${CMAKE_CURRENT_SOURCE_DIR}/kernels/ChangeVertices_cuda.cu CUDA_SOURCE_PROPERTY_FORMAT)
+message("ChangeVertices_cuda.cu format: ${format2}")
 
-set( SHADERS
-  ${CMAKE_CURRENT_SOURCE_DIR}/shaders/draw_solid_color.cu
-)
+set(ARGN      
+    ${SOURCES}
+     ${HEADERS}
+     ${SHADERS}
+     ${KERNELS})
 
-set( SHADERS_HEADERS
-  #${CMAKE_CURRENT_SOURCE_DIR}/shaders/app_config.h
-)
+OPTIX_add_source_groups()
 
+CUDA_GET_SOURCES_AND_OPTIONS(source_files cmake_options options ${ARGN})
+message("source_files: ${source_files}")
 
-source_group( "include"         FILES ${HEADERS} )
-source_group( "src"         FILES ${SOURCES} )
-source_group( "shaders"         FILES ${SHADERS} )
-source_group( "shaders_headers" FILES ${SHADERS_HEADERS} )
-
-
-
-  OPTIX_add_source_groups()
-  # Separate the sources from the CMake and CUDA options fed to the macro.  This code
-  # comes from the CUDA_COMPILE_PTX macro found in FindCUDA.cmake.  We are copying the
-  # code here, so that we can use our own name for the target.  target_name is used in the
-  # creation of the output file names, and we want this to be unique for each target in
-  # the SDK.
-  CUDA_GET_SOURCES_AND_OPTIONS(source_files cmake_options options ${ARGN})
-  # Isolate OBJ target files. NVCC should only process these files and leave PTX targets for NVRTC
-  set(cu_obj_source_files)
-  set(cu_optix_source_files)
-  foreach(file ${source_files})
+set(cu_obj_source_files)
+set(cu_optix_source_files)
+message("obj_input_files: ${source_files}")
+foreach(file ${source_files})
     get_source_file_property(_cuda_source_format ${file} CUDA_SOURCE_PROPERTY_FORMAT)
     if(${_cuda_source_format} MATCHES "OBJ")
-      list(APPEND cu_obj_source_files ${file})
+        list(APPEND cu_obj_source_files ${file})
+        message("!!!!!!!!obj_source_files: ${file}")
     else()
-      list(APPEND cu_optix_source_files ${file})
+        list(APPEND cu_optix_source_files ${file})
     endif()
-  endforeach()
-  # Create the rules to build the OBJ from the CUDA files.
-  CUDA_WRAP_SRCS( ${PROJECT_NAME} OBJ generated_files ${cu_obj_source_files} ${cmake_options} OPTIONS ${options} )
-  # Create the rules to build the PTX and/or OPTIX files.
-  if( SAMPLES_INPUT_GENERATE_OPTIXIR )
-    CUDA_WRAP_SRCS( ${PROJECT_NAME} OPTIXIR generated_files2 ${cu_optix_source_files} ${cmake_options} OPTIONS ${options} )
-    list(APPEND generated_files ${generated_files2})
-  endif()
-  if( SAMPLES_INPUT_GENERATE_PTX AND NOT CUDA_NVRTC_ENABLED)
-    CUDA_WRAP_SRCS( ${PROJECT_NAME} PTX generated_files3 ${cu_optix_source_files} ${cmake_options} OPTIONS ${options} )
-    list(APPEND generated_files ${generated_files3})
-  endif()
+endforeach()
+
+CUDA_WRAP_SRCS( ${PROJECT_NAME} OBJ genegrated_files ${cu_obj_source_files}  ${cmake_options}  OPTIONS ${options} )
+message("obj_output_files = ${genegrated_files}")
+
+CUDA_WRAP_SRCS(${PROJECT_NAME} OPTIXIR genegrated_files2 ${cu_optix_source_files}  ${cmake_options}  OPTIONS ${options} )
+list(APPEND generated_files ${genegrated_files2})
+
+
+
+#OPTIX_shader_compile_to_optix_input(shader_ptx_file ${SHADERS})
 
 qt_add_executable(OvaSim
     MANUAL_FINALIZATION
-     ${SOURCES}
-     ${HEADERS}
-     ${SHADERS}
-     ${SHADERS_HEADERS}
+      ${source_files}
+     ${genegrated_files}
+     ${cmake_options}
 )
-
-
-OPTIX_shader_compile_to_optix_input(shader_ptx_file ${SHADERS})
 
 
 
@@ -526,8 +520,11 @@ if(USING_GNU_CXX)
 target_link_libraries( ${PROJECT_NAME} m ) # Explicitly link against math library (C samples don't do that by default)
 endif()
 
+target_link_libraries( ${PROJECT_NAME} ${CUDA_LIBRARY})
+
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/data)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/kernels)
 
 include(GNUInstallDirs)
 install(TARGETS OvaSim
@@ -546,6 +543,7 @@ target_link_libraries(${PROJECT_NAME}
         Qt::Core
         Qt::Gui
         Qt::Widgets
+        Qt::OpenGLWidgets
         hd.lib 
 	    hl.lib
 	    hdu.lib
@@ -554,4 +552,5 @@ target_link_libraries(${PROJECT_NAME}
         sutil_7_sdk
         imgui
         ${CUDA_LIBRARIES}
+
 )

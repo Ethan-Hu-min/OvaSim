@@ -2,28 +2,13 @@
 #include <QtWidgets/QApplication>
 
 
-#include <optix.h>
-#include <optix_function_table_definition.h>
-#include <optix_stack_size.h>
-#include <optix_stubs.h>
 
-#include <cuda_runtime.h>
-
-#include <sutil/CUDAOutputBuffer.h>
-#include <sutil/Exception.h>
-#include <sutil/sutil.h>
-#include <sampleConfig.h>
-
-#include <iomanip>
-#include <iostream>
-#include <string>
-
-#include <include/optixhello.h>
 
 
 int main(int argc, char* argv[]) {
     QApplication a(argc, argv);
     OvaSim w;
+    w.setFixedSize(1200, 800);
     w.show();
     return a.exec();
 }
