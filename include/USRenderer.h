@@ -23,11 +23,10 @@ public:
 	void changeTransducer(float angle, const vec3f& axis);
 	void setNeedle(float r_angle, float r_depth);
 	void changeNeedle(float changeDepth);
-	void changeSwitch(bool _switch);
 
 	int getCollideOvamId();
 
-	void downloadCollideInfo(uint8_t _collide_models_id[], vec3f _collide_models_pos[]);
+	void downloadCollideInfo();
 	void loadTexture(std::vector<std::string>& filmname);
 
 	uint32_t* pixelsData();
@@ -35,6 +34,11 @@ public:
 	void run();
 	void clear();
 
+	float getNeedleEndX(float x);
+	float getNeedleEndY(float y);
+	int getNowObtainedNums();
+
+	void updateAccel();
 
 protected:
 	void initOptix();
@@ -46,7 +50,7 @@ protected:
 	void createPipeline();
 	void buildSBT();
 	void buildAccel();
-	void updateAccel();
+
 
 
 protected:

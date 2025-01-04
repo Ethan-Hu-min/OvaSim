@@ -8,6 +8,7 @@ class GlobalConfig {
 		static const int frameSizeY;
 		static const int transducerNums;
 		static const int maxBounceNum;
+		static const int maxFps;
 		static const std::string dataPath;
 		static const std::string rootPath;
 

@@ -19,9 +19,6 @@
 
 
 
-static bool needleSwicth = false;
-
-
 std::ostream& operator<<(std::ostream& os, const vec3f& v) {
     os << v.x << ", " << v.y << ", " << v.z;
     return os;
@@ -369,20 +366,30 @@ void USRenderer::buildAccel() {
     CUDA_SYNC_CHECK();
 }
 
+int USRenderer::getNowObtainedNums(){
+    int nownums = 0;
+    for (const auto& pair : ovam_scale) {
+        if (pair.second < 0.3)nownums++;
+    }
+    return nownums;
+}
+
+
 void USRenderer::updateAccel() {
 
     const int changeModelID = this->now_collide_model;
     float changescale = this->ovam_scale[changeModelID];
     if (changescale > 0.01) {
-        this->ovam_scale[changeModelID] = changescale - 0.002;
+        this->ovam_scale[changeModelID] = changescale - 0.005;
     }
     if (changeModelID > 0) {
-        //changeVerticesPos((float3*)*triangleInput.data()[changeModelID].triangleArray.vertexBuffers,
-        //    (float3*)origin_vertices[changeModelID],
-        //    make_float3(scene->models[changeModelID].modelCenter.x, scene->models[changeModelID].modelCenter.y, scene->models[changeModelID].modelCenter.z),
-        //    triangleInput.data()[changeModelID].triangleArray.numVertices,
-        //    changescale
-        //);
+
+        changeVerticesPos((float3*)*triangleInput.data()[changeModelID].triangleArray.vertexBuffers,
+            (float3*)origin_vertices[changeModelID],
+            make_float3(scene->models[changeModelID].modelCenter.x, scene->models[changeModelID].modelCenter.y, scene->models[changeModelID].modelCenter.z),
+            triangleInput.data()[changeModelID].triangleArray.numVertices,
+            changescale
+        );
 
         accelOptionsUpdate.buildFlags = OPTIX_BUILD_FLAG_ALLOW_COMPACTION | OPTIX_BUILD_FLAG_ALLOW_UPDATE;
         accelOptionsUpdate.operation = OPTIX_BUILD_OPERATION_UPDATE;
@@ -522,10 +529,6 @@ void USRenderer::changeNeedle(float changeDepth) {
     }
 }
 
-void USRenderer::changeSwitch(bool _switch) {
-
-    needleSwicth = _switch;
-}
 
 void USRenderer::getTransducer() {
     //qDebug() << "C_pos:" << uslaunchParams.transducer.position.x << " " << uslaunchParams.transducer.position.y << " " << uslaunchParams.transducer.position.z ;
@@ -608,10 +611,11 @@ uint32_t* USRenderer::pixelsData() {
     return this->pixels.data();
 }
 
-void USRenderer::downloadCollideInfo(uint8_t _collide_models_id[], vec3f _collide_models_pos[])
+void USRenderer::downloadCollideInfo()
 {
-    collide_models_id.download(_collide_models_id, uslaunchParams.maxBounce);
-    collide_models_pos.download(_collide_models_pos, uslaunchParams.maxBounce);
+    collide_models_id.download(this->collide_id.data(), uslaunchParams.maxBounce);
+    collide_models_pos.download(this->collide_pos.data(), uslaunchParams.maxBounce);
+    this->now_collide_model = getCollideOvamId();
 }
 
 int USRenderer::getCollideOvamId() {
@@ -654,6 +658,13 @@ void USRenderer::clear() {
 
 void USRenderer::run() {
 
+}
+
+float USRenderer::getNeedleEndX(float x) {
+    return x + uslaunchParams.needle.relaDepth * sin((uslaunchParams.needle.relaAngle / 180.0) * PI);
+}
+float USRenderer::getNeedleEndY(float y) {
+    return y + uslaunchParams.needle.relaDepth * cos((uslaunchParams.needle.relaAngle / 180.0) * PI);
 }
 //
 //void processInput(GLFWwindow* window, USRenderer* render) {

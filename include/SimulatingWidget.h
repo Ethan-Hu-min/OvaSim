@@ -16,6 +16,7 @@ public:
     SimulatingWidget(QWidget* parent = nullptr);
     ~SimulatingWidget();
     void closeEvent(QCloseEvent*);
+    void keyPressEvent(QKeyEvent* event);
 
 signals:
     void ExitWin();
@@ -23,9 +24,10 @@ signals:
 private:
     Ui::SimulatingWidgetClass ui;
     GLWidget* GLDisplayWidget = nullptr;
-    QTimer* timer;
+    QTimer* timer = nullptr;
+
+
 
 private slots:
-    void displayImage();
 
 };
