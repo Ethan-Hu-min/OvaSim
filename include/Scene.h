@@ -21,7 +21,7 @@ class Scene {
 public:
 	Scene();
 	void parseConfig(std::string config_dir);
-	void setTransducer(vec3f pos, vec3f dir, vec3f ver, int nums, int angle, float depth, float width);
+	void setTransducer(vec3f pos, vec3f dir, vec3f ver, int nums, float angle, float depth, float width);
 	void loadModels();
 	void createWorldModels();
 	void setExampleName(std::string name);

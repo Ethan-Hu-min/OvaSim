@@ -5,6 +5,28 @@
 GLWidget::GLWidget(QWidget* parent)
 	: QOpenGLWidget(parent)
 {
+    hHD = hdInitDevice(HD_DEFAULT_DEVICE);
+    if (HD_DEVICE_ERROR(error = hdGetError()))
+    {
+        qDebug() << " Failed to initialize haptic device ";
+        //hduPrintError(stderr, &error, "Failed to initialize haptic device");
+    }
+    // Start the servo scheduler and enable forces.
+    controlMode = 2;
+    hdEnable(HD_FORCE_OUTPUT);
+    hdStartScheduler();
+    if (HD_DEVICE_ERROR(error = hdGetError()))
+    {
+        qDebug() << "Failed to start the scheduler";
+        //hduPrintError(stderr, &error, "Failed to start the scheduler");
+    }
+    
+
+
+    originTransducerPos = vec3f(50.0f, -200.0f, 100.0f);
+    originTransducerDir = vec3f(0.197562f, 0.729760f, -0.654538f);
+    originTransducerVer = vec3f(0.728110f, -0.556300f, -0.400482f);
+    originTransducerAngle = 120.0;
     createRenderer();
 }
 
@@ -14,6 +36,10 @@ GLWidget::~GLWidget() {
 	//imageData = nullptr;
     qDebug() << "imageData clean\n";
     if(usRenderer != nullptr) delete usRenderer;
+
+    hdStopScheduler();
+    hdUnschedule(hSphereCallback);
+    hdDisableDevice(hHD);
    
 }
 
@@ -24,8 +50,8 @@ void GLWidget::createRenderer() {
     scene->loadModels();
     scene->createWorldModels();
     qDebug() << "models nums: " << scene->worldmodel.size();
-    scene->setTransducer(vec3f(50.0f, -200.0f, 100.0f),
-        vec3f(0.197562f, 0.729760f, -0.654538f), vec3f(0.728110f, -0.556300f, -0.400482f), GlobalConfig::transducerNums, 120.0, 512.0, 512.0);
+    scene->setTransducer(originTransducerPos,
+        originTransducerDir, originTransducerVer, GlobalConfig::transducerNums, originTransducerAngle, 512.0, 512.0);
     usRenderer = new USRenderer(scene);
     usRenderer->setNeedle(-30.0, 0.0);
     usRenderer->setTransducer(scene->transducer);
@@ -46,9 +72,11 @@ void GLWidget::keyPressEvent(QKeyEvent* event) {
         }
     }
 
-    if (startRender && controlMode == 1) {
-        switch (event->key())
-        {
+    if (startRender) {
+        switch (controlMode) {
+        case 1:
+            switch (event->key())
+            {
             case Qt::Key_W:
                 usRenderer->changeTransducer(1.0f, { 1.0f, 0.0f, 0.0f });
                 break;
@@ -73,16 +101,34 @@ void GLWidget::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_2:
                 usRenderer->changeNeedle(-0.002f);
                 break;
-            case Qt::Key_3:
+            case Qt::Key_X:
             {
                 needleSwitch = !needleSwitch;
                 if (this->needleSwitch)emit needleSwitchSignal(QString("open"));
                 else emit needleSwitchSignal(QString("close"));
-            }  
+            }
+            break;
+            }
+            break;
+        case 2:
+            switch (event->key())
+            {
+            case Qt::Key_1:
+                usRenderer->changeNeedle(0.002f);
                 break;
-
+            case Qt::Key_2:
+                usRenderer->changeNeedle(-0.002f);
+                break;
+            case Qt::Key_X:
+            {
+                needleSwitch = !needleSwitch;
+                if (this->needleSwitch)emit needleSwitchSignal(QString("open"));
+                else emit needleSwitchSignal(QString("close"));
+            }
+            break;
+            }
+         break;
         }
-
     }
 
 }
@@ -171,17 +217,37 @@ void GLWidget::resizeGL(int w, int h) {
 void GLWidget::setImage()
 {
     if (startRender) {
+        if (controlMode == 2) {
+            float changeRow = DeviceWidgetInfo.angles[0] - originDeviceAngles.x;
+            float changePitch = DeviceWidgetInfo.angles[1] - originDeviceAngles.y;
+            float changeYaw = DeviceWidgetInfo.angles[2] - originDeviceAngles.z;
+            usRenderer->changeTransducerAbs(changeRow/2.0, changePitch/2.0, changeYaw/2.0);
+        }
+        if (!hdWaitForCompletion(hSphereCallback, HD_WAIT_CHECK_STATUS))
+        {
+            qDebug() << "The main scheduler callback has exited";
+        }
+
         update();
     }
 }
 
 void GLWidget::setStartRenderTrue() {
+    hSphereCallback = hdScheduleAsynchronous(
+        PosSphereCallback, &DeviceWidgetInfo, HD_DEFAULT_SCHEDULER_PRIORITY);
+    qDebug() << "device has used";
     startRender = true;
+    setOriginDevice();
     update();
 }
 
 void GLWidget::setStartRenderFalse() {
     startRender = false;
     update();
+}
+
+void GLWidget::setOriginDevice() {
+    originDevicePos = vec3f(DeviceWidgetInfo.position[0], DeviceWidgetInfo.position[1], DeviceWidgetInfo.position[2]);
+    originDeviceAngles = vec3f(DeviceWidgetInfo.angles[0], DeviceWidgetInfo.angles[1], DeviceWidgetInfo.angles[2]);
 }
 

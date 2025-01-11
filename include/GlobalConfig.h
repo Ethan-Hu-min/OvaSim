@@ -11,6 +11,7 @@ class GlobalConfig {
 		static const int maxFps;
 		static const std::string dataPath;
 		static const std::string rootPath;
+		static const std::string logPath;
 
 };
 

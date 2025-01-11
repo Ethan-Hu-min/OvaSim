@@ -6,6 +6,8 @@ SimulatingWidget::SimulatingWidget(QWidget* parent) : QWidget(parent)
 	setAttribute(Qt::WA_DeleteOnClose);
 	ui.setupUi(this);
 
+
+
 	GLDisplayWidget = new GLWidget(ui.verticalLayoutWidget);
 	GLDisplayWidget->setMinimumSize(QSize(800, 600));
 	GLDisplayWidget->setMaximumSize(QSize(800, 600));
@@ -28,6 +30,7 @@ SimulatingWidget::~SimulatingWidget()
 	qDebug() << "!!!!!!Simulating Widget Delete\n";
 	if(timer != nullptr)delete timer;
 	if(GLDisplayWidget != nullptr)delete GLDisplayWidget;
+
 }
 
 void SimulatingWidget::closeEvent(QCloseEvent*) {

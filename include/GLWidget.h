@@ -11,7 +11,7 @@
 #include<QTime>
 #include <qstring.h>
 
-
+#include "UseDevice.h"
 
 class GLWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
 
@@ -37,6 +37,8 @@ public slots:
 
 	void setStartRenderTrue();
 	void setStartRenderFalse();
+
+	void setOriginDevice();
 	//void initTextures();
 	//void initShaders();
 
@@ -49,8 +51,17 @@ private:
 	int fps = 0;
 
 	bool startRender = false;
-	int controlMode = 1;
+	int controlMode = 1;//1 for keyboard; 2 for device
 	bool needleSwitch = false;
+
+	vec3f originTransducerPos;
+	vec3f originTransducerDir;
+	vec3f originTransducerVer;
+
+	float originTransducerAngle;
+
+	vec3f originDevicePos;
+	vec3f originDeviceAngles;
 	//QVector<QVector3D> vertices;
 	//QVector<QVector2D> texCoords;
 	//QOpenGLShaderProgram program;
@@ -58,7 +69,10 @@ private:
 
 	GLuint displayTexture; 
 
-	 
+	HDErrorInfo error;
+	HHD hHD;
+	HDSchedulerHandle hSphereCallback;
+	DeviceInfo DeviceWidgetInfo;
 
 };
 

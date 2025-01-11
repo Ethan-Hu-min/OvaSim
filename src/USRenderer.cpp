@@ -511,6 +511,11 @@ void USRenderer::setTransducer(const Transducer& _transducer)
     uslaunchParams.transducer.vertical
         = normalize(cross(uslaunchParams.transducer.horizontal,
             uslaunchParams.transducer.direction));
+    originPos = uslaunchParams.transducer.position;
+    originDir = uslaunchParams.transducer.direction;
+    originVer = uslaunchParams.transducer.vertical;
+    originHor = uslaunchParams.transducer.horizontal;
+
     uslaunchParams.frame.size.x = _transducer.t_nums;
     uslaunchParams.frame.size.y = _transducer.t_nums;
 
@@ -567,6 +572,23 @@ void USRenderer::changeTransducer(float angle, const vec3f& axis) {
     uslaunchParams.transducer.vertical = rotateVector(prever, angle, axis);
     uslaunchParams.transducer.horizontal = rotateVector(prehor, angle, axis);
 }
+
+void USRenderer::changeTransducerAbs(float angleRoll, float anglePitch, float angleYaw) {
+    vec3f rotateDir1 = rotateVector(originDir, angleRoll, vec3f(1.0f, 0.0f, 0.0f));
+    vec3f rotateDir2 = rotateVector(rotateDir1, anglePitch, vec3f(0.0f, 1.0f, 0.0f));
+    vec3f rotateDir3 = rotateVector(rotateDir2, angleYaw, vec3f(0.0f, 0.0f, 1.0f));
+    vec3f rotateVer1 = rotateVector(originVer, angleRoll, vec3f(1.0f, 0.0f, 0.0f));
+    vec3f rotateVer2 = rotateVector(rotateVer1, anglePitch, vec3f(0.0f, 1.0f, 0.0f));
+    vec3f rotateVer3 = rotateVector(rotateVer2, angleYaw, vec3f(0.0f, 0.0f, 1.0f));
+    vec3f rotateHor1 = rotateVector(originHor, angleRoll, vec3f(1.0f, 0.0f, 0.0f));
+    vec3f rotateHor2 = rotateVector(rotateHor1, anglePitch, vec3f(0.0f, 1.0f, 0.0f));
+    vec3f rotateHor3 = rotateVector(rotateHor2, angleYaw, vec3f(0.0f, 0.0f, 1.0f));
+    uslaunchParams.transducer.direction = normalize(rotateDir3);
+    uslaunchParams.transducer.vertical = normalize(rotateVer3);
+    uslaunchParams.transducer.horizontal = normalize(rotateHor3);
+
+}
+
 
 void USRenderer::resize(const vec2i& newSize)
 {

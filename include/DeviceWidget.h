@@ -7,7 +7,8 @@
 #include <QWidget>
 #include <QTimer>
 
-
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/basic_file_sink.h>
 
 namespace Ui {
 class DeviceWidget;
@@ -23,21 +24,29 @@ public:
     ~DeviceWidget();
     void closeEvent(QCloseEvent*);
     
-    
+   
+
+public slots:
+    void showData();
+    void on_clicked_force_button();
+    void on_clicked_record_button();
+
 signals:
     void ExitWin();
 
 private:
     Ui::DeviceWidget ui;
-    QTimer* timer;
+    QTimer* timer = nullptr;
 
     HDErrorInfo error;
     HHD hHD;
-    HDCallbackCode InfoCallback;
+    HDSchedulerHandle hSphereCallback;
     DeviceInfo DeviceWidgetInfo;
 
-private slots:
-    void showData();
+    bool forceButton = false;
+    bool recordButton = false;
+
+    std::shared_ptr<spdlog::logger> deviceLog;
 
 };
 

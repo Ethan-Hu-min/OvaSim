@@ -3,6 +3,7 @@
 #ifdef CMAKE_ROOT_PATH
 	const std::string GlobalConfig::rootPath = std::string(CMAKE_ROOT_PATH);
 	const std::string GlobalConfig::dataPath = std::string(CMAKE_ROOT_PATH) + "/data/";
+	const std::string GlobalConfig::logPath = std::string(CMAKE_ROOT_PATH) + "/log/";
 #endif
 
 const int GlobalConfig::globalAddressVariable = 0;

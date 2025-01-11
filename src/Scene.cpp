@@ -104,7 +104,7 @@ void Scene::createWorldModels() {
 	}
 }
 
-void Scene::setTransducer(vec3f pos, vec3f dir, vec3f ver, int nums, int angle, float depth, float width) {
+void Scene::setTransducer(vec3f pos, vec3f dir, vec3f ver, int nums, float angle, float depth, float width) {
 	transducer.t_position = pos;
 	transducer.t_direction = normalize(dir);
 	transducer.t_vertical = normalize(ver);

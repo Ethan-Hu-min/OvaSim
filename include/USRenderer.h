@@ -21,6 +21,7 @@ public:
 	void setTransducer(const Transducer& transducer);
 	void getTransducer();
 	void changeTransducer(float angle, const vec3f& axis);
+	void changeTransducerAbs(float angleRoll, float anglePitch, float angleYaw);
 	void setNeedle(float r_angle, float r_depth);
 	void changeNeedle(float changeDepth);
 
@@ -84,6 +85,11 @@ protected:
 	OptixAccelBuildOptions accelOptionsUpdate = {};
 
 	USLaunchParams uslaunchParams;
+	vec3f originPos;
+	vec3f originDir;
+	vec3f originVer;
+	vec3f originHor;
+
 	CUDABuffer launchParamsBuffer;
 	CUDABuffer colorBuffer;
 	CUDABuffer postprocessBuffer;
