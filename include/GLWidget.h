@@ -71,7 +71,7 @@ private:
 
 	HDErrorInfo error;
 	HHD hHD;
-	HDSchedulerHandle hSphereCallback;
+	HDSchedulerHandle hForceGLCallback;
 	DeviceInfo DeviceWidgetInfo;
 
 };

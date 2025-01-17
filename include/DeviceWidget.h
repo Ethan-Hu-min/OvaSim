@@ -40,7 +40,7 @@ private:
 
     HDErrorInfo error;
     HHD hHD;
-    HDSchedulerHandle hSphereCallback;
+    HDSchedulerHandle hForceCallback;
     DeviceInfo DeviceWidgetInfo;
 
     bool forceButton = false;

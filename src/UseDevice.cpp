@@ -33,7 +33,7 @@ HDCallbackCode HDCALLBACK GetDeviceInfoCallback(void* data)
 
 
 
-HDCallbackCode HDCALLBACK PosSphereCallback(void* data)
+HDCallbackCode HDCALLBACK ForceDeviceCallback(void* data)
 {
     DeviceInfo* nowInfo = static_cast<DeviceInfo*>(data);
     //const hduVector3Dd spherePosition(0, -30, -80);
@@ -65,6 +65,59 @@ HDCallbackCode HDCALLBACK PosSphereCallback(void* data)
 
     hduVector3Dd diffAngles = sphereAngle - angles;
     hduVector3Dd t = nowInfo -> dampingTorque *1000*  diffAngles;
+
+    nowInfo->position_force = f;
+    nowInfo->angles_torque = t / 1000.0;
+
+    hdSetDoublev(HD_CURRENT_FORCE, f);
+    hdSetDoublev(HD_CURRENT_GIMBAL_TORQUE, t);
+
+    hdEndFrame(hdGetCurrentDevice());
+
+    HDErrorInfo error;
+    if (HD_DEVICE_ERROR(error = hdGetError()))
+    {
+        //hduPrintError(stderr, &error, "Error during main scheduler callback\n");
+
+        //if (hduIsSchedulerError(&error))
+        //{
+        //    return HD_CALLBACK_DONE;
+        //}
+    }
+
+    return HD_CALLBACK_CONTINUE;
+}
+
+HDCallbackCode HDCALLBACK ForceGLCallback(void* data)
+{
+    DeviceInfo* nowInfo = static_cast<DeviceInfo*>(data);
+    const hduVector3Dd spherePosition(0, -30, -80);
+    const hduVector3Dd sphereAngle(0, 0, 0);
+
+    hdBeginFrame(hdGetCurrentDevice());
+
+    // Get the position of the device.
+    hduVector3Dd position;
+    hdGetDoublev(HD_CURRENT_POSITION, position);
+
+    hduVector3Dd angles;
+    hdGetDoublev(HD_CURRENT_GIMBAL_ANGLES, angles);
+
+    nowInfo->position = position;
+    nowInfo->angles[0] = angles[0] * 180.0;
+    nowInfo->angles[1] = angles[1] * 180.0;
+    nowInfo->angles[2] = angles[2] * 180.0;
+    // Find the distance between the device and the center of the
+    // sphere.
+    double distance = (position - spherePosition).magnitude();
+    hduVector3Dd forceDirection = (spherePosition - position) / distance;
+    hduVector3Dd x;
+    if (distance < 10) x = distance * forceDirection;
+    else x = 10 * forceDirection;
+    hduVector3Dd f = 0.2 * x;
+
+    hduVector3Dd diffAngles = sphereAngle - angles;
+    hduVector3Dd t = 0.2 * 1000 * diffAngles;
 
     nowInfo->position_force = f;
     nowInfo->angles_torque = t / 1000.0;

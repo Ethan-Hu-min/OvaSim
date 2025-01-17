@@ -79,11 +79,10 @@ DeviceWidget::DeviceWidget(QWidget *parent)
 DeviceWidget::~DeviceWidget()
 
 {
-    spdlog::drop("deviceLog");
     if(timer != nullptr)delete timer;
     if (forceButton) {
         hdStopScheduler();
-        hdUnschedule(hSphereCallback);
+        hdUnschedule(hForceCallback);
     }
     hdDisableDevice(hHD);
 }
@@ -99,6 +98,7 @@ void DeviceWidget::on_clicked_force_button() {
         ui.device_force_button->setText("启动力反馈");
 
         hdStopScheduler();
+        hdUnschedule(hForceCallback);
 
     }
     else {
@@ -112,8 +112,8 @@ void DeviceWidget::on_clicked_force_button() {
         }
         // Schedule the frictionless plane callback, which will then run at 
         // servoloop rates and command forces if the user penetrates the plane.
-        hSphereCallback = hdScheduleAsynchronous(
-            PosSphereCallback, &DeviceWidgetInfo, HD_DEFAULT_SCHEDULER_PRIORITY);
+        hForceCallback = hdScheduleAsynchronous(
+            ForceDeviceCallback, &DeviceWidgetInfo, HD_DEFAULT_SCHEDULER_PRIORITY);
 
     }
 }
@@ -135,7 +135,7 @@ void DeviceWidget::on_clicked_record_button() {
 void DeviceWidget::showData() {
 
     if (forceButton) {
-        if (!hdWaitForCompletion(hSphereCallback, HD_WAIT_CHECK_STATUS))
+        if (!hdWaitForCompletion(hForceCallback, HD_WAIT_CHECK_STATUS))
         {
             fprintf(stderr, "\nThe main scheduler callback has exited\n");
             qDebug() << "The main scheduler callback has exited\n";

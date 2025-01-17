@@ -21,6 +21,7 @@ struct DeviceInfo {
 };
 
 HDCallbackCode HDCALLBACK GetDeviceInfoCallback(void* data);
-HDCallbackCode HDCALLBACK PosSphereCallback(void* data);
+HDCallbackCode HDCALLBACK ForceDeviceCallback(void* data);
+HDCallbackCode HDCALLBACK ForceGLCallback(void* data);
 
 #endif

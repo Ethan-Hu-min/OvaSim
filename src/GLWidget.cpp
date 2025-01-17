@@ -36,9 +36,8 @@ GLWidget::~GLWidget() {
 	//imageData = nullptr;
     qDebug() << "imageData clean\n";
     if(usRenderer != nullptr) delete usRenderer;
-
     hdStopScheduler();
-    hdUnschedule(hSphereCallback);
+    hdUnschedule(hForceGLCallback);
     hdDisableDevice(hHD);
    
 }
@@ -223,7 +222,7 @@ void GLWidget::setImage()
             float changeYaw = DeviceWidgetInfo.angles[2] - originDeviceAngles.z;
             usRenderer->changeTransducerAbs(changeRow/2.0, changePitch/2.0, changeYaw/2.0);
         }
-        if (!hdWaitForCompletion(hSphereCallback, HD_WAIT_CHECK_STATUS))
+        if (!hdWaitForCompletion(hForceGLCallback, HD_WAIT_CHECK_STATUS))
         {
             qDebug() << "The main scheduler callback has exited";
         }
@@ -233,8 +232,8 @@ void GLWidget::setImage()
 }
 
 void GLWidget::setStartRenderTrue() {
-    hSphereCallback = hdScheduleAsynchronous(
-        PosSphereCallback, &DeviceWidgetInfo, HD_DEFAULT_SCHEDULER_PRIORITY);
+    hForceGLCallback = hdScheduleAsynchronous(
+        ForceGLCallback, &DeviceWidgetInfo, HD_DEFAULT_SCHEDULER_PRIORITY);
     qDebug() << "device has used";
     startRender = true;
     setOriginDevice();
@@ -243,6 +242,7 @@ void GLWidget::setStartRenderTrue() {
 
 void GLWidget::setStartRenderFalse() {
     startRender = false;
+
     update();
 }
 
