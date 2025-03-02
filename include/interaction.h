@@ -9,21 +9,11 @@ struct Ray {
 };
 
 struct Interaction {
-	float bias = 0.001f;
-	float distance;
 	vec3f position;
 	vec3f geomNormal;
+	vec3f next_dir;
+	bool is_inside;
+	bool is_stop;
 	int indexModelInt;
-	__forceinline__ __device__ Ray gene_ray(const vec3f& wi) const {
-		vec3f N = geomNormal;
-		if (dot(wi, geomNormal) > 0.0f) {
-			N = -geomNormal;
-			printf("inver\n");
-		}
-
-		Ray ray;
-		ray.origin = position + wi * bias;
-		ray.direction = wi;
-		return ray;
-	}
+	float intensity;
 };

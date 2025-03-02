@@ -10,7 +10,7 @@
 #include <ImageProcess_cuda.h>
 
 #include <ChangeVertices_cuda.h>
-
+#include <CreateTexture_cuda.h>
 #include <GlobalConfig.h>
 #include<qdebug.h>
 
@@ -104,6 +104,32 @@ void USRenderer::initOptix() {
         << "#osc: successfully initialized optix... yay!"
         << GDT_TERMINAL_DEFAULT ;
 }
+
+void USRenderer::initTexture() {
+    int n = 7;
+    int _width = uslaunchParams.frame.size.x;
+    int _height = uslaunchParams.frame.size.y;
+    textureBuffer.resize(n);
+    for (int i = 0; i < n; i++) {
+        textureBuffer[i].resize(_width * _height  * sizeof(uint8_t));
+    }
+    uslaunchParams.textures.bgTexture = (uint8_t*)textureBuffer[0].d_pointer();
+    uslaunchParams.textures.bladderTexture = (uint8_t*)textureBuffer[1].d_pointer();
+    uslaunchParams.textures.uterusTexture = (uint8_t*)textureBuffer[2].d_pointer();
+    uslaunchParams.textures.uterusinTexture = (uint8_t*)textureBuffer[3].d_pointer();
+    uslaunchParams.textures.intestineTexture = (uint8_t*)textureBuffer[4].d_pointer();
+    uslaunchParams.textures.ovaryTexture = (uint8_t*)textureBuffer[5].d_pointer();
+    uslaunchParams.textures.ovamTexture = (uint8_t*)textureBuffer[6].d_pointer();
+
+    createTexture(26, 93, _width * _height, (uint8_t*)textureBuffer[0].d_pointer());
+    createTexture(15, 37, _width * _height, (uint8_t*)textureBuffer[1].d_pointer());
+    createTexture(23, 103, _width * _height, (uint8_t*)textureBuffer[2].d_pointer());
+    createTexture(24, 125, _width * _height, (uint8_t*)textureBuffer[3].d_pointer());
+    createTexture(100, 110, _width * _height, (uint8_t*)textureBuffer[4].d_pointer());
+    createTexture(34, 90, _width * _height, (uint8_t*)textureBuffer[5].d_pointer());
+    createTexture(11, 26, _width * _height, (uint8_t*)textureBuffer[6].d_pointer());
+}
+
 
 static void context_log_cb(unsigned int level,
     const char* tag,
@@ -474,8 +500,8 @@ void USRenderer::render() {
         launchParamsBuffer.sizeInBytes,
         &sbt,
         /*! dimensions of the launch: */
-        (uslaunchParams.transducer.nums + 1),
-        1,
+        uslaunchParams.transducer.nums,
+        uslaunchParams.numSamples,
         1
     ));
     // sync - make sure the frame is rendered before we download and
@@ -598,10 +624,13 @@ void USRenderer::resize(const vec2i& newSize)
     // resize our cuda frame buffer
     colorBuffer.resize(newSize.x * newSize.y * sizeof(uint32_t));
     postprocessBuffer.resize(newSize.x * newSize.y * sizeof(uint32_t));
+    intensityBuffer.resize(newSize.x * newSize.y * sizeof(float));
+
     // update the uslaunch parameters that we'll pass to the optix
     // uslaunch:
     uslaunchParams.frame.size = newSize;
     uslaunchParams.frame.colorBuffer = (uint32_t*)colorBuffer.d_pointer();
+    uslaunchParams.frame.intensityBuffer = (float*)intensityBuffer.d_pointer();
 
     // and re-set the camera, since aspect may have changed
     collide_models_id.resize(uslaunchParams.maxBounce * sizeof(uint8_t));
@@ -620,7 +649,7 @@ void USRenderer::paraResize(int w, int h) {
 
 
 void USRenderer::postProcess() {
-   postProcess_gpu((uint32_t*)colorBuffer.d_pointer(), (uint32_t*)postprocessBuffer.d_pointer(), uslaunchParams.frame.size.x, uslaunchParams.frame.size.y, 7, 7, stream);
+   postProcess_gpu(GlobalConfig::SampleNum ,(float*)intensityBuffer.d_pointer(), (uint32_t*)colorBuffer.d_pointer(), (uint32_t*)postprocessBuffer.d_pointer(), uslaunchParams.frame.size.x, uslaunchParams.frame.size.y, 7, 7, stream);
 }
 
 void USRenderer::downloadPixels()

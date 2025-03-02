@@ -1,6 +1,7 @@
 #pragma once
 #include "optix.h"
 #include "support/gdt/gdt/math/vec.h"
+#include <include/GlobalConfig.h>
 
 #define PI 3.14159
 
@@ -15,17 +16,22 @@ struct  TriangleMeshSBTData
 	int indexModelSBT;
 };
 
-struct segment {
-	vec3f from, to;
-	int material_id;
-	segment(const vec3f& f, const vec3f& t, int id) : from(f), to(t), material_id(id) {};
-};
-
 struct USLaunchParams {
 	struct {
 		uint32_t* colorBuffer;
 		vec2i  size;
+		float* intensityBuffer;
 	}frame;
+
+	struct {
+		uint8_t* bgTexture;
+		uint8_t* bladderTexture;
+		uint8_t* uterusTexture;
+		uint8_t* uterusinTexture;
+		uint8_t* intestineTexture;
+		uint8_t* ovaryTexture;
+		uint8_t* ovamTexture;
+	}textures;
 
 	struct {
 		vec3f position;
@@ -45,5 +51,6 @@ struct USLaunchParams {
 		vec3f* collide_models_pos;
 	}needle;
 	OptixTraversableHandle traversable;
-	int maxBounce =  0;
+	int maxBounce = GlobalConfig::maxBounceNum;
+	int numSamples = GlobalConfig::SampleNum;
 };

@@ -5,21 +5,20 @@
 GLWidget::GLWidget(QWidget* parent)
 	: QOpenGLWidget(parent)
 {
-    hHD = hdInitDevice(HD_DEFAULT_DEVICE);
-    if (HD_DEVICE_ERROR(error = hdGetError()))
-    {
-        qDebug() << " Failed to initialize haptic device ";
-        //hduPrintError(stderr, &error, "Failed to initialize haptic device");
-    }
-    // Start the servo scheduler and enable forces.
-    controlMode = 2;
-    hdEnable(HD_FORCE_OUTPUT);
-    hdStartScheduler();
-    if (HD_DEVICE_ERROR(error = hdGetError()))
-    {
-        qDebug() << "Failed to start the scheduler";
-        //hduPrintError(stderr, &error, "Failed to start the scheduler");
-    }
+    //hHD = hdInitDevice(HD_DEFAULT_DEVICE);
+    //if (HD_DEVICE_ERROR(error = hdGetError()))
+    //{
+    //    qDebug() << " Failed to initialize haptic device ";
+    //    //hduPrintError(stderr, &error, "Failed to initialize haptic device");
+    //}
+    //// Start the servo scheduler and enable forces.
+    //hdEnable(HD_FORCE_OUTPUT);
+    //hdStartScheduler();
+    //if (HD_DEVICE_ERROR(error = hdGetError()))
+    //{
+    //    qDebug() << "Failed to start the scheduler";
+    //    //hduPrintError(stderr, &error, "Failed to start the scheduler");
+    //}
     
 
 
@@ -36,9 +35,9 @@ GLWidget::~GLWidget() {
 	//imageData = nullptr;
     qDebug() << "imageData clean\n";
     if(usRenderer != nullptr) delete usRenderer;
-    hdStopScheduler();
-    hdUnschedule(hForceGLCallback);
-    hdDisableDevice(hHD);
+    //hdStopScheduler();
+    //hdUnschedule(hForceGLCallback);
+    //hdDisableDevice(hHD);
    
 }
 
@@ -138,6 +137,7 @@ void GLWidget::initializeGL() {
     glClearColor(174 / 255.0, 208 / 255.0, 238 / 255.0, 1.0);    //设置背景
     glEnable(GL_TEXTURE_2D);     //设置纹理2D功能可用
     
+    usRenderer->initTexture();
     usRenderer->resize(vec2i(frameSizeWidth, frameSizeHeight));
     usRenderer->paraResize(frameSizeWidth, frameSizeHeight);
 
@@ -222,21 +222,21 @@ void GLWidget::setImage()
             float changeYaw = DeviceWidgetInfo.angles[2] - originDeviceAngles.z;
             usRenderer->changeTransducerAbs(changeRow/2.0, changePitch/2.0, changeYaw/2.0);
         }
-        if (!hdWaitForCompletion(hForceGLCallback, HD_WAIT_CHECK_STATUS))
-        {
-            qDebug() << "The main scheduler callback has exited";
-        }
+        //if (!hdWaitForCompletion(hForceGLCallback, HD_WAIT_CHECK_STATUS))
+        //{
+        //    qDebug() << "The main scheduler callback has exited";
+        //}
 
         update();
     }
 }
 
 void GLWidget::setStartRenderTrue() {
-    hForceGLCallback = hdScheduleAsynchronous(
-        ForceGLCallback, &DeviceWidgetInfo, HD_DEFAULT_SCHEDULER_PRIORITY);
-    qDebug() << "device has used";
+    //hForceGLCallback = hdScheduleAsynchronous(
+    //    ForceGLCallback, &DeviceWidgetInfo, HD_DEFAULT_SCHEDULER_PRIORITY);
+    //qDebug() << "device has used";
     startRender = true;
-    setOriginDevice();
+    //setOriginDevice();
     update();
 }
 

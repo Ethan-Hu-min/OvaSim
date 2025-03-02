@@ -126,6 +126,13 @@
       "outsideMaterial": "Water"
     },
     {
+      "file": "Uterusin.obj",
+      "deltas": [0.0,0.0,0.0],
+      "scaling": [1.0,1.0,1.0],
+      "material": "Intestine", 
+      "outsideMaterial": "Uterus"
+    },
+    {
       "file": "Intestine.obj",
       "deltas": [0.0,0.0,0.0],
       "scaling": [1.0,1.0,1.0],

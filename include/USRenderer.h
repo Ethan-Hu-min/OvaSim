@@ -34,7 +34,7 @@ public:
 
 	void run();
 	void clear();
-
+	void initTexture();
 	float getNeedleEndX(float x);
 	float getNeedleEndY(float y);
 	int getNowObtainedNums();
@@ -92,6 +92,8 @@ protected:
 
 	CUDABuffer launchParamsBuffer;
 	CUDABuffer colorBuffer;
+	CUDABuffer intensityBuffer;
+	std::vector<CUDABuffer> textureBuffer;
 	CUDABuffer postprocessBuffer;
 	Transducer lastSetTransducer;
 	CUDABuffer collide_models_id;

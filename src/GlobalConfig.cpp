@@ -11,5 +11,6 @@ const int GlobalConfig::frameSizeX = 800;
 const int GlobalConfig::frameSizeY = 600;
 const int GlobalConfig::transducerNums = 512;
 const int GlobalConfig::maxBounceNum = 12;
+const int GlobalConfig::SampleNum = 16;
 const int GlobalConfig::maxFps = 30;
 

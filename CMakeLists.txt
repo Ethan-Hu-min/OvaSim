@@ -456,6 +456,7 @@ file(GLOB KERNELS "${CMAKE_CURRENT_SOURCE_DIR}/kernels/*.cu" "${CMAKE_CURRENT_SO
 set_source_files_properties(
 ${CMAKE_CURRENT_SOURCE_DIR}/kernels/ChangeVertices_cuda.cu
 ${CMAKE_CURRENT_SOURCE_DIR}/kernels/ImageProcess_cuda.cu
+${CMAKE_CURRENT_SOURCE_DIR}/kernels/CreateTexture_cuda.cu
 PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ
 )
 
