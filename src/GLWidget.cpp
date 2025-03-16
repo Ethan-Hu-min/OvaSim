@@ -1,30 +1,33 @@
 ﻿#include "GLWidget.h"    
 #include <GlobalConfig.h>
 #include <QKeyEvent>
-
+#include <QTimer>
+#include<qregularexpression.h>
 GLWidget::GLWidget(QWidget* parent)
 	: QOpenGLWidget(parent)
 {
-    //hHD = hdInitDevice(HD_DEFAULT_DEVICE);
-    //if (HD_DEVICE_ERROR(error = hdGetError()))
-    //{
-    //    qDebug() << " Failed to initialize haptic device ";
-    //    //hduPrintError(stderr, &error, "Failed to initialize haptic device");
-    //}
-    //// Start the servo scheduler and enable forces.
-    //hdEnable(HD_FORCE_OUTPUT);
-    //hdStartScheduler();
-    //if (HD_DEVICE_ERROR(error = hdGetError()))
-    //{
-    //    qDebug() << "Failed to start the scheduler";
-    //    //hduPrintError(stderr, &error, "Failed to start the scheduler");
-    //}
-    
-
-
-    originTransducerPos = vec3f(50.0f, -200.0f, 100.0f);
-    originTransducerDir = vec3f(0.197562f, 0.729760f, -0.654538f);
-    originTransducerVer = vec3f(0.728110f, -0.556300f, -0.400482f);
+    hHD = hdInitDevice(HD_DEFAULT_DEVICE);
+    if (HD_DEVICE_ERROR(error = hdGetError()))
+    {
+        qDebug() << " Failed to initialize haptic device ";
+        //hduPrintError(stderr, &error, "Failed to initialize haptic device");
+    }
+    // Start the servo scheduler and enable forces.
+    hdEnable(HD_FORCE_OUTPUT);
+    hdStartScheduler();
+    if (HD_DEVICE_ERROR(error = hdGetError()))
+    {
+        qDebug() << "Failed to start the scheduler";
+        //hduPrintError(stderr, &error, "Failed to start the scheduler");
+    }
+    serial = new QSerialPort(this);
+    serialTimer = new QTimer();
+    connect(serialTimer, SIGNAL(timeout()), this, SLOT(sendCommand()));
+    openSerialPort();
+    //originTransducerPos = vec3f(50.0f, -200.0f, 100.0f);
+    originTransducerPos = vec3f(20.0f, -150.0f, 100.0f);
+    originTransducerDir = vec3f(-0.59304577f, -0.1078265f, 0.79791613f);
+    originTransducerVer = vec3f(0.78504567f, 0.14273558f, 0.60276848f);
     originTransducerAngle = 120.0;
     createRenderer();
 }
@@ -35,11 +38,25 @@ GLWidget::~GLWidget() {
 	//imageData = nullptr;
     qDebug() << "imageData clean\n";
     if(usRenderer != nullptr) delete usRenderer;
-    //hdStopScheduler();
-    //hdUnschedule(hForceGLCallback);
-    //hdDisableDevice(hHD);
+    if (serialTimer != nullptr)delete serialTimer;
+    hdStopScheduler();
+    hdUnschedule(hForceGLCallback);
+    hdDisableDevice(hHD);
    
 }
+
+void GLWidget::closeEvent(QCloseEvent*) {
+    //hdStopScheduler();
+    //hdUnschedule(hForceCallback);
+    //hdDisableDevice(hHD);
+    if (startRender) {
+        hdStopScheduler();
+    }
+    hdUnschedule(hForceGLCallback);
+    hdDisableDevice(hHD);
+    emit ExitWin();
+}
+
 
 void GLWidget::createRenderer() {
     Scene* scene = new Scene();
@@ -51,8 +68,10 @@ void GLWidget::createRenderer() {
     scene->setTransducer(originTransducerPos,
         originTransducerDir, originTransducerVer, GlobalConfig::transducerNums, originTransducerAngle, 512.0, 512.0);
     usRenderer = new USRenderer(scene);
-    usRenderer->setNeedle(-30.0, 0.0);
+    usRenderer->setNeedle(GlobalConfig::needleAngle, GlobalConfig::needleDepth);
     usRenderer->setTransducer(scene->transducer);
+    usRenderer->initTexture();
+    qDebug() << "[INFO] Init textures success";
     frameSizeHeight = GlobalConfig::transducerNums;
     frameSizeWidth = GlobalConfig::transducerNums;
 }
@@ -94,35 +113,27 @@ void GLWidget::keyPressEvent(QKeyEvent* event) {
                 usRenderer->changeTransducer(-1.0f, { 0.0f, 0.0f, 1.0f });
                 break;
             case Qt::Key_1:
-                usRenderer->changeNeedle(0.002f);
+                usRenderer->changeNeedle(0.001f * fps);
                 break;
             case Qt::Key_2:
-                usRenderer->changeNeedle(-0.002f);
+                usRenderer->changeNeedle(-0.001f * fps);
                 break;
             case Qt::Key_X:
-            {
-                needleSwitch = !needleSwitch;
-                if (this->needleSwitch)emit needleSwitchSignal(QString("open"));
-                else emit needleSwitchSignal(QString("close"));
-            }
+                if (!event->isAutoRepeat()) {
+                    needleSwitch = true;
+                    emit needleSwitchSignal(QString("OPEN"));
+                }
             break;
             }
             break;
         case 2:
             switch (event->key())
             {
-            case Qt::Key_1:
-                usRenderer->changeNeedle(0.002f);
-                break;
-            case Qt::Key_2:
-                usRenderer->changeNeedle(-0.002f);
-                break;
             case Qt::Key_X:
-            {
-                needleSwitch = !needleSwitch;
-                if (this->needleSwitch)emit needleSwitchSignal(QString("open"));
-                else emit needleSwitchSignal(QString("close"));
-            }
+                if (!event->isAutoRepeat()) {
+                    needleSwitch = true;
+                    emit needleSwitchSignal(QString("OPEN"));
+                }
             break;
             }
          break;
@@ -131,13 +142,77 @@ void GLWidget::keyPressEvent(QKeyEvent* event) {
 
 }
 
+void GLWidget::keyReleaseEvent(QKeyEvent* event) {
+    if (event->key() == Qt::Key_X) {
+        // 同样检查自动重复
+        if (!event->isAutoRepeat()) {
+            needleSwitch = false;
+            emit needleSwitchSignal(QString("CLOSE"));
+        }
+    }
+}
+
+void GLWidget::openSerialPort() {
+    serial->setPortName("COM3");
+    serial->setBaudRate(QSerialPort::Baud57600);
+    serial->setDataBits(QSerialPort::Data8);
+    serial->setParity(QSerialPort::NoParity);
+    serial->setStopBits(QSerialPort::OneStop);
+
+    if (serial->open(QIODevice::ReadWrite)) {
+        connect(serial, SIGNAL(readyRead()), this, SLOT(onReadyRead()));
+        serialTimer->start(30); // 30ms 定时发送
+        qDebug() << "串口已打开";
+    }
+    else {
+        qDebug() << "打开串口失败:" << serial->errorString();
+    }
+}
+
+void GLWidget::sendCommand() {
+    serial->write("$?\r\n"); // 发送指令
+}
+
+void GLWidget::onReadyRead() {
+    serialBuffer += serial->readAll(); // 读取数据到缓冲区
+    //qDebug() << "读取数据";
+    // 按换行符分割数据
+    while (serialBuffer.contains("\r\n")) {
+        int endIndex = serialBuffer.indexOf("\r\n");
+        QByteArray line = serialBuffer.left(endIndex);
+        serialBuffer = serialBuffer.mid(endIndex + 2); // 移除已处理数据
+        processLine(line);
+    }
+}
+
+void GLWidget::processLine(const QByteArray& line) {
+    QString data = QString::fromLatin1(line);
+    //qDebug() << "处理数据" << data;
+    QRegularExpression regex(R"((?:^|[, ])id=(\d+),(\d+)(?:[, ]|$))");
+    QRegularExpressionMatch match = regex.match(data);
+
+    if (match.hasMatch()) {
+        bool ok;
+        int idValue = match.captured(2).toInt(&ok); // 提取第二个捕获组
+        if (ok) {
+            needleDepth = idValue;
+        }
+        else {
+            qDebug() << "Invalid integer format";
+        }
+    }
+    else {
+        qDebug() << "Pattern not found: " << data;
+    }
+}
+
+
 void GLWidget::initializeGL() {
    
     initializeOpenGLFunctions(); //初始化OPenGL功能函数
     glClearColor(174 / 255.0, 208 / 255.0, 238 / 255.0, 1.0);    //设置背景
     glEnable(GL_TEXTURE_2D);     //设置纹理2D功能可用
     
-    usRenderer->initTexture();
     usRenderer->resize(vec2i(frameSizeWidth, frameSizeHeight));
     usRenderer->paraResize(frameSizeWidth, frameSizeHeight);
 
@@ -167,15 +242,26 @@ void GLWidget::paintGL()
             emit ovamNumsSignal(nownums);
         }
 
-
-        if (needleSwitch)usRenderer->updateAccel();
+        
+        if (needleSwitch && collideModel > 5) {
+            usRenderer->updateAccel();
+            tubeCapacity = (tubeCapacity + 1) % 100;
+            emit nowCapacity(tubeCapacity);
+        }
+        
+        
+        
 
         usRenderer->resize(vec2i(frameSizeWidth, frameSizeHeight));
         usRenderer->render();
         usRenderer->postProcess();
         usRenderer->downloadPixels();
         usRenderer->downloadCollideInfo();
-
+        collideModel = usRenderer->getCollideModel();
+        qDebug() << "[INFO]Model: " << collideModel;
+        if(collideModel < 4 && collideModel >=0)emit collideInfo(collideModel);//0,1,2,3 for other model;
+        if (collideModel < 6 && needleSwitch)emit collideInfo(10);//error using needleswitch;
+        
 
         float needleStartX = 0.0;
         float needleStartY = -1.0;
@@ -220,23 +306,32 @@ void GLWidget::setImage()
             float changeRow = DeviceWidgetInfo.angles[0] - originDeviceAngles.x;
             float changePitch = DeviceWidgetInfo.angles[1] - originDeviceAngles.y;
             float changeYaw = DeviceWidgetInfo.angles[2] - originDeviceAngles.z;
-            usRenderer->changeTransducerAbs(changeRow/2.0, changePitch/2.0, changeYaw/2.0);
+            usRenderer->changeTransducerAbs(changeRow, -changePitch, changeYaw);
+            //usRenderer->changeTransducerAbs(changeRow, -changePitch, 0.0);
+            usRenderer->changeNeedleAbs((1024 - needleDepth) / 1024.0);
         }
-        //if (!hdWaitForCompletion(hForceGLCallback, HD_WAIT_CHECK_STATUS))
-        //{
-        //    qDebug() << "The main scheduler callback has exited";
-        //}
+
+        if (!hdWaitForCompletion(hForceGLCallback, HD_WAIT_CHECK_STATUS))
+        {
+            qDebug() << "The main scheduler callback has exited";
+        }
 
         update();
     }
 }
 
 void GLWidget::setStartRenderTrue() {
-    //hForceGLCallback = hdScheduleAsynchronous(
-    //    ForceGLCallback, &DeviceWidgetInfo, HD_DEFAULT_SCHEDULER_PRIORITY);
-    //qDebug() << "device has used";
+
+    DeviceWidgetInfo.originPos = hduVector3Dd(0, -30, -80);
+    DeviceWidgetInfo.originAngle = hduVector3Dd(0, 0, 0);
+    DeviceWidgetInfo.dampingForce = 0.2;
+    DeviceWidgetInfo.dampingTorque = 1.0;
+
+    hForceGLCallback = hdScheduleAsynchronous(
+        ForceGLCallback, &DeviceWidgetInfo, HD_DEFAULT_SCHEDULER_PRIORITY);
+    qDebug() << "device has used";
     startRender = true;
-    //setOriginDevice();
+    setOriginDevice();
     update();
 }
 

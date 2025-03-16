@@ -67,9 +67,6 @@ USRenderer::USRenderer(const Scene* scene) :scene(scene) {
     qDebug() << "#building SBT ..." ;
     buildSBT();
     launchParamsBuffer.alloc(sizeof(uslaunchParams));
-    std::vector<std::string> textureFiles;
-    textureFiles.push_back("texture_ovary.jpg");
-    loadTexture(textureFiles);
     qDebug() << "sizeInBytes: " << launchParamsBuffer.sizeInBytes ;
     qDebug() << "launchParams: " << sizeof(uslaunchParams) ;
     qDebug() << "#context, module, pipeline, etc, all set up ..." ;
@@ -79,7 +76,6 @@ USRenderer::USRenderer(const Scene* scene) :scene(scene) {
     for (int i = 0; i < scene->models.size(); i++) {
         ovam_scale.insert(std::make_pair(i, 1.0));
     }
-
 }
 
 USRenderer::~USRenderer() {
@@ -128,6 +124,21 @@ void USRenderer::initTexture() {
     createTexture(100, 110, _width * _height, (uint8_t*)textureBuffer[4].d_pointer());
     createTexture(34, 90, _width * _height, (uint8_t*)textureBuffer[5].d_pointer());
     createTexture(11, 26, _width * _height, (uint8_t*)textureBuffer[6].d_pointer());
+
+    int berlinWidth, berlinHeight, channels;
+    unsigned char* host_data = stbi_load((GlobalConfig::dataPath + GlobalConfig::berlinNoisePath).c_str(), &berlinWidth, &berlinHeight, &channels, 1);
+    if (host_data) {
+        noiseBuffer.alloc(berlinWidth * berlinHeight * sizeof(uint8_t));
+        noiseBuffer.upload(host_data, berlinWidth * berlinHeight * sizeof(uint8_t));
+        stbi_image_free(host_data);
+        noiseSize.x = berlinWidth;
+        noiseSize.y = berlinHeight;
+        qDebug() << "[INFO] Load Imgae Success";
+
+    }
+    else {
+        qDebug() << "[ERROR] Failed to load image";
+    }
 }
 
 
@@ -402,17 +413,18 @@ int USRenderer::getNowObtainedNums(){
 
 
 void USRenderer::updateAccel() {
-
-    const int changeModelID = this->now_collide_model;
+    const int changeModelID = this->now_collide_ovam;
     float changescale = this->ovam_scale[changeModelID];
-    if (changescale > 0.01) {
-        this->ovam_scale[changeModelID] = changescale - 0.005;
+    if (changescale > 0.05) {
+        this->ovam_scale[changeModelID] = changescale - 0.02;
     }
     if (changeModelID > 0) {
+       // vec3f now_needle_pos = uslaunchParams.transducer.position + 
+
 
         changeVerticesPos((float3*)*triangleInput.data()[changeModelID].triangleArray.vertexBuffers,
             (float3*)origin_vertices[changeModelID],
-            make_float3(scene->models[changeModelID].modelCenter.x, scene->models[changeModelID].modelCenter.y, scene->models[changeModelID].modelCenter.z),
+            make_float3(this->now_ovam_pos.x, this->now_ovam_pos.y, this->now_ovam_pos.z),
             triangleInput.data()[changeModelID].triangleArray.numVertices,
             changescale
         );
@@ -480,6 +492,7 @@ void USRenderer::buildSBT() {
         rec.data.index = (vec3i*)indexBuffer[meshID].d_pointer();
         rec.data.normal = (vec3f*)normalBuffer[meshID].d_pointer();
         rec.data.indexModelSBT = mesh->indexModel;
+        rec.data.materialID = mesh->indexMaterial;
         hitgroupRecords.push_back(rec);
     }
     hitgroupRecordsBuffer.alloc_and_upload(hitgroupRecords);
@@ -511,17 +524,7 @@ void USRenderer::render() {
     CUDA_SYNC_CHECK();
 }
 
-void USRenderer::loadTexture(std::vector<std::string>& _filename) {
-    std::string filenameComplete;
-    for (auto s : _filename) {
-        filenameComplete = GlobalConfig::dataPath + "/" + scene->exampleName + "/" + s;
-        qDebug() << filenameComplete ;
-    }
-    vec2i _res;
-    int _comp;
-    //uslaunchParams.texture.texture1 = stbi_load(filenameComplete.c_str(), &_res.x, &_res.y, &_comp, 4);
-    qDebug() << "texture load successful!!" ;
-}
+
 
 void USRenderer::setTransducer(const Transducer& _transducer)
 {
@@ -559,6 +562,11 @@ void USRenderer::changeNeedle(float changeDepth) {
         uslaunchParams.needle.relaDepth += changeDepth;
     }
 }
+
+void USRenderer::changeNeedleAbs(float changeDepth) {
+    uslaunchParams.needle.relaDepth = changeDepth;
+}
+
 
 
 void USRenderer::getTransducer() {
@@ -643,13 +651,22 @@ void USRenderer::resize(const vec2i& newSize)
 
 void USRenderer::paraResize(int w, int h) {
     this->pixels.resize(w * h);
-    this->collide_id.resize(uslaunchParams.maxBounce);
+    this->collide_id.resize(uslaunchParams.maxBounce,-1);
     this->collide_pos.resize(uslaunchParams.maxBounce);
 }
 
 
 void USRenderer::postProcess() {
-   postProcess_gpu(GlobalConfig::SampleNum ,(float*)intensityBuffer.d_pointer(), (uint32_t*)colorBuffer.d_pointer(), (uint32_t*)postprocessBuffer.d_pointer(), uslaunchParams.frame.size.x, uslaunchParams.frame.size.y, 7, 7, stream);
+   postProcess_gpu(
+       (uint8_t*)noiseBuffer.d_pointer(),
+       noiseSize.x,
+       noiseSize.y,
+       GlobalConfig::SampleNum ,
+       (float*)intensityBuffer.d_pointer(),
+       (uint32_t*)colorBuffer.d_pointer(),
+       (uint32_t*)postprocessBuffer.d_pointer(),
+       uslaunchParams.frame.size.x, uslaunchParams.frame.size.y
+       , 14, 3, uslaunchParams.needle.relaAngle, stream);
 }
 
 void USRenderer::downloadPixels()
@@ -666,16 +683,18 @@ void USRenderer::downloadCollideInfo()
 {
     collide_models_id.download(this->collide_id.data(), uslaunchParams.maxBounce);
     collide_models_pos.download(this->collide_pos.data(), uslaunchParams.maxBounce);
-    this->now_collide_model = getCollideOvamId();
+    getCollideId();
 }
 
-int USRenderer::getCollideOvamId() {
+void USRenderer::getCollideId() {
     std::vector<float> insecDistance;
     insecDistance.resize(uslaunchParams.maxBounce);
-    if (this->collide_id[0] == 0)return -1;
+    this->now_collide_model = -1;
+    this->now_collide_ovam = -1;
+    this->now_ovam_pos = vec3f(0.0, 0.0, 0.0);
+    if (this->collide_id[0] == -1) return;
     for (int i = 0; i < uslaunchParams.maxBounce; i++) {
-
-        if (this->collide_id[i] > 0) {
+        if (this->collide_id[i] >= 0) {
             insecDistance[i] = sqrt(
                 (this->collide_pos[i].x - uslaunchParams.transducer.position.x) * (this->collide_pos[i].x - uslaunchParams.transducer.position.x)
                 + (this->collide_pos[i].y - uslaunchParams.transducer.position.y) * (this->collide_pos[i].y - uslaunchParams.transducer.position.y)
@@ -685,23 +704,24 @@ int USRenderer::getCollideOvamId() {
 
     //qDebug() << "nearest: " << insecDistance[0] << "  " << "needle: " << uslaunchParams.needle.relaDepth * uslaunchParams.frame.size.x / 2 ;
 
-    for (int i = 0; i < uslaunchParams.maxBounce; i++) {
-        if (insecDistance[i] > 0) {
-            if (this->collide_id[i] == this->collide_id[i + 1] && this->collide_id[i] != 0) {
-                if (uslaunchParams.needle.relaDepth * uslaunchParams.frame.size.x / 2.0 > insecDistance[i]
-                    && uslaunchParams.needle.relaDepth * uslaunchParams.frame.size.x / 2.0 < insecDistance[i + 1])
-                {
-                    if (int(this->collide_id[i]) >= 6) {
-                        return int(this->collide_id[i]);
-                    }
+    for (int i = 0; i < uslaunchParams.maxBounce - 1; i++) {
+        if (insecDistance[i] > 0  && insecDistance[i+1] > 0) {
+            if (uslaunchParams.needle.relaDepth * uslaunchParams.frame.size.x / 2.0 > insecDistance[i]
+                && uslaunchParams.needle.relaDepth * uslaunchParams.frame.size.x / 2.0 < insecDistance[i + 1]) {
+                this->now_collide_model = this->collide_id[i];
+                if (this->collide_id[i] == this->collide_id[i + 1] && int(this->collide_id[i]) >= 6) {
+                    this->now_collide_ovam = this->collide_id[i];
+                    this->now_ovam_pos = this->collide_pos[i];
+                    return;
                 }
             }
         }
-
     }
-    return -1;
 }
 
+int USRenderer::getCollideModel() {
+    return this->now_collide_model;
+}
 
 void USRenderer::clear() {
     this->resize(vec2i(this->uslaunchParams.frame.size.x, this->uslaunchParams.frame.size.y));
@@ -797,7 +817,7 @@ float USRenderer::getNeedleEndY(float y) {
 //    //    this->postProcess();
 //    //    this->downloadPixels(this->pixels.data());
 //    //    this->downloadCollideInfo(this->collide_id.data(), this->collide_pos.data());
-//    //    this->now_collide_model = getCollideOvamId();
+//    //    this->now_collide_ovam = getCollideOvamId();
 //    //    float needelStart_x = 0.0;
 //    //    float needelStart_y = -1.0;
 //    //    float needleEnd_x = needelStart_x + uslaunchParams.needle.relaDepth * sin((uslaunchParams.needle.relaAngle / 180.0) * PI);

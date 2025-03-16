@@ -7,6 +7,14 @@
 //
 //
 //
+
+struct HardwareInfo {
+	vec3f pos;
+	vec3f angle;
+	bool needleSwitch;
+	float needleDepth;
+};
+
 class USRenderer {
 public:
 	USRenderer(const Scene* scene);
@@ -24,11 +32,14 @@ public:
 	void changeTransducerAbs(float angleRoll, float anglePitch, float angleYaw);
 	void setNeedle(float r_angle, float r_depth);
 	void changeNeedle(float changeDepth);
+	void changeNeedleAbs(float changeDepth);
 
-	int getCollideOvamId();
+
+	void getCollideId();
+	int    getCollideModel();
+
 
 	void downloadCollideInfo();
-	void loadTexture(std::vector<std::string>& filmname);
 
 	uint32_t* pixelsData();
 
@@ -51,8 +62,6 @@ protected:
 	void createPipeline();
 	void buildSBT();
 	void buildAccel();
-
-
 
 protected:
 	CUcontext cudaContext;
@@ -94,6 +103,9 @@ protected:
 	CUDABuffer colorBuffer;
 	CUDABuffer intensityBuffer;
 	std::vector<CUDABuffer> textureBuffer;
+	CUDABuffer noiseBuffer;
+	vec2i noiseSize;
+
 	CUDABuffer postprocessBuffer;
 	Transducer lastSetTransducer;
 	CUDABuffer collide_models_id;
@@ -119,8 +131,12 @@ protected:
 	std::unordered_map<int, float> ovam_scale;
 	std::string examplePath = "";
 
+	HardwareInfo renderHWinfo;
+
 	int numMeshes = 0;
 
 	int now_collide_model = -1;
+	int now_collide_ovam = -1;
+	vec3f now_ovam_pos = vec3f(0.0, 0.0, 0.0);
 
 };

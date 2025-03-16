@@ -2,6 +2,7 @@
 #include <QLabel>
 #include <QDateTime>
 #include <GlobalConfig.h>
+#include <QKeyEvent>
 
 DeviceWidget::DeviceWidget(QWidget *parent)
     : QWidget(parent)
@@ -9,7 +10,7 @@ DeviceWidget::DeviceWidget(QWidget *parent)
 
     QDateTime currentDateTime = QDateTime::currentDateTime();
     QString formattedDateTime = currentDateTime.toString("yyyy-MM-dd-HH-mm");
-    QString qfilename = formattedDateTime + ".log";
+    QString qfilename = formattedDateTime + ".log"; 
     qDebug() << "nowlog:" << qfilename;
     std::string logFileName = GlobalConfig::logPath +std::string(qfilename.toLocal8Bit());
 
@@ -31,9 +32,9 @@ DeviceWidget::DeviceWidget(QWidget *parent)
     
     ui.device_para_name->setText(hdGetString(HD_DEVICE_MODEL_TYPE));
 
-    DeviceWidgetInfo.originPos = hduVector3Dd(0,-30, -80);
+    DeviceWidgetInfo.originPos = hduVector3Dd(0,0,0);
     DeviceWidgetInfo.originAngle = hduVector3Dd(0, 0, 0);
-    DeviceWidgetInfo.dampingForce = 0.3;
+    DeviceWidgetInfo.dampingForce = 0.2;
     DeviceWidgetInfo.dampingTorque = 1.0;
 
 
@@ -68,29 +69,115 @@ DeviceWidget::DeviceWidget(QWidget *parent)
     ui.device_origin_alpha->setSingleStep(1.0);
     ui.device_origin_alpha->setValue(DeviceWidgetInfo.originAngle[2]);
 
-
+    serial = new QSerialPort(this);
+    serialTimer = new QTimer();
+    openSerialPort();
     connect(ui.device_record_button, SIGNAL(clicked(bool)), this, SLOT(on_clicked_record_button()));
     connect(ui.device_force_button, SIGNAL(clicked(bool)), this, SLOT(on_clicked_force_button()));
 
     connect(timer, SIGNAL(timeout()), this, SLOT(showData()));
+    connect(serialTimer, SIGNAL(timeout()), this, SLOT(sendCommand()));
     timer->start(33);
+    
 }
 
 DeviceWidget::~DeviceWidget()
 
 {
     if(timer != nullptr)delete timer;
-    if (forceButton) {
-        hdStopScheduler();
-        hdUnschedule(hForceCallback);
-    }
-    hdDisableDevice(hHD);
+    if (serialTimer != nullptr)delete serialTimer;
 }
 
+
 void DeviceWidget::closeEvent(QCloseEvent*) {
+    //hdStopScheduler();
+    //hdUnschedule(hForceCallback);
+    //hdDisableDevice(hHD);
+    if (forceButton) {
+        hdStopScheduler();
+    }
+    hdUnschedule(hForceCallback);
+    hdDisableDevice(hHD);
     emit ExitWin();
 }
 
+
+void DeviceWidget::openSerialPort() {
+    serial->setPortName("COM3");
+    serial->setBaudRate(QSerialPort::Baud57600);
+    serial->setDataBits(QSerialPort::Data8);
+    serial->setParity(QSerialPort::NoParity);
+    serial->setStopBits(QSerialPort::OneStop);
+
+    if (serial->open(QIODevice::ReadWrite)) {
+        connect(serial, SIGNAL(readyRead()), this, SLOT(onReadyRead()));
+        serialTimer->start(30); // 30ms 定时发送
+        qDebug() << "串口已打开";
+    }
+    else {
+        qDebug() << "打开串口失败:" << serial->errorString();
+    }
+}
+
+void DeviceWidget::sendCommand() {
+    serial->write("$?\r\n"); // 发送指令
+}
+
+void DeviceWidget::onReadyRead() {
+    serialBuffer += serial->readAll(); // 读取数据到缓冲区
+    //qDebug() << "读取数据" << serialBuffer;
+    // 按换行符分割数据
+    while (serialBuffer.contains("\r\n")) {
+        int endIndex = serialBuffer.indexOf("\r\n");
+        QByteArray line = serialBuffer.left(endIndex);
+        serialBuffer = serialBuffer.mid(endIndex + 2); // 移除已处理数据
+        processLine(line);
+    }
+}
+
+void DeviceWidget::processLine(const QByteArray& line) {
+    QString data = QString::fromLatin1(line);
+    //qDebug() << "处理数据" << data;
+    QRegularExpression regex(R"((?:^|[, ])id=(\d+),(\d+)(?:[, ]|$))");
+    QRegularExpressionMatch match = regex.match(data);
+
+    if (match.hasMatch()) {
+        bool ok;
+        int idValue = match.captured(2).toInt(&ok); // 提取第二个捕获组
+        if (ok) {
+            needleDepth = idValue;
+            ui.device_needle->setNum(needleDepth);
+        }
+        else {
+            qDebug() << "Invalid integer format";
+        }
+    }
+    else {
+        qDebug() << "Pattern not found";
+    }
+}
+
+void DeviceWidget::keyPressEvent(QKeyEvent* event) {
+    if (event->key() == Qt::Key_X) {
+        // 检查是否为自动重复事件（避免长按时重复触发）
+        if (!event->isAutoRepeat()) {
+            footswitch = true;
+            ui.device_foot->setText("OPEN");
+            qDebug() << "脚踏按下，footswitch = true";
+        }
+    }
+}
+
+void DeviceWidget::keyReleaseEvent(QKeyEvent* event) {
+    if (event->key() == Qt::Key_X) {
+        // 同样检查自动重复
+        if (!event->isAutoRepeat()) {
+            footswitch = false;
+            ui.device_foot->setText("CLOSE");
+            qDebug() << "脚踏释放，footswitch = false";
+        }
+    }
+}
 
 void DeviceWidget::on_clicked_force_button() {
     if (forceButton) {
@@ -98,7 +185,6 @@ void DeviceWidget::on_clicked_force_button() {
         ui.device_force_button->setText("启动力反馈");
 
         hdStopScheduler();
-        hdUnschedule(hForceCallback);
 
     }
     else {
@@ -128,8 +214,6 @@ void DeviceWidget::on_clicked_record_button() {
         recordButton = true;
         ui.device_record_button->setText("停止记录");
     }
-
-
 }
 
 void DeviceWidget::showData() {

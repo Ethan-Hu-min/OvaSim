@@ -12,7 +12,7 @@ uint32_t calculate_color(float attenuation) {
     return 0xff000000 | (intensity << 0) | (intensity << 8) | (intensity << 16);
 }
 
-__global__ void inter2color(int _SampleNum,  float* _SrcInt, uint32_t* _DstImg, int _rows, int _cols, int _kernal_size_x) {
+__global__ void inter2color(uint8_t* _Noise, int _NoiseRows, int NoiseCols,  int _SampleNum,  float* _SrcInt, uint32_t* _DstImg, int _rows, int _cols, int _kernal_size_x) {
     int _row_idx = threadIdx.x + blockIdx.x * blockDim.x;
     //行坐标
     int _col_idx = threadIdx.y + blockIdx.y * blockDim.y;
@@ -20,8 +20,14 @@ __global__ void inter2color(int _SampleNum,  float* _SrcInt, uint32_t* _DstImg, 
         return;
     }
     int _img_idx = _row_idx + _col_idx * _rows;
-    float nowintensity = _SrcInt[_img_idx];
-    _DstImg[_img_idx] = calculate_color(nowintensity / float(_SampleNum));
+    if (_img_idx >= _NoiseRows * NoiseCols)return;
+    float nowintensity = _SrcInt[_img_idx] / float(_SampleNum);
+    float noiseValue = static_cast<float>(_Noise[_img_idx]) / 255.0;
+    float noiseCoff = 0.2 + 0.8 * noiseValue;
+    _DstImg[_img_idx] = calculate_color(nowintensity * noiseCoff + 0.1);
+
+    //float nowintensity = _SrcInt[_img_idx];
+    //_DstImg[_img_idx] = calculate_color(nowintensity / float(_SampleNum));
 }
 
 
@@ -86,7 +92,7 @@ __global__ void postProcess_y(uint32_t* _SrcImg, uint32_t* _DstImg, int _rows, i
 
 }
 
-__global__ void postProcess_mask(uint32_t* _SrcImg, int _rows, int _cols) {
+__global__ void postProcess_mask(uint32_t* _SrcImg, int _rows, int _cols, float needleAngle) {
     //列坐标
     int _row_idx = threadIdx.x + blockIdx.x * blockDim.x;
     //行坐标
@@ -95,7 +101,16 @@ __global__ void postProcess_mask(uint32_t* _SrcImg, int _rows, int _cols) {
         return;
     }
     uint32_t dst_color = 0xff000000;
-    int _img_idx = _row_idx + _col_idx * _rows;;
+    int _img_idx = _row_idx + _col_idx * _rows;
+
+
+    float k = tan(((90.0+ needleAngle) / 180.0) * 3.1415926);
+    float needledis = -1.0 * k * float(_row_idx) + k * (_rows / 2.0) - float(_col_idx);
+
+    if (needledis * needledis < 1.0 && _row_idx % 3 ==0)_SrcImg[_img_idx] = 0xffeeeeee;
+
+
+
     int dis = (_row_idx - _rows / 2) * (_row_idx - _rows / 2) + _col_idx * _col_idx;
     if (dis < 625 || dis > _cols * _cols) {
         _SrcImg[_img_idx] = dst_color;
@@ -103,17 +118,19 @@ __global__ void postProcess_mask(uint32_t* _SrcImg, int _rows, int _cols) {
     if(float(_row_idx) *  0.8 * (-float(_cols) / float(_rows)) + float(_cols) * 0.4  > float(_col_idx))_SrcImg[_img_idx] = dst_color;
     if(float(_row_idx) *  0.8 * (float(_cols) / float(_rows)) - float(_cols) * 0.4  > float(_col_idx))_SrcImg[_img_idx] = dst_color;
 }
+                      
 
-
-extern "C" __host__ void postProcess_gpu(int _SampleNum, float* _SrcIntensity,  uint32_t* _SrcImg, uint32_t* _DstImg, int _rows, int _cols, int _kernal_size_x, int _kernal_size_y, CUstream _stream) {
+extern "C" __host__ void postProcess_gpu(uint8_t * _NoiseImg, int _NoiseRows, int _NoiseCols,
+    const  int _SampleNum, float* _SrcIntensity,  uint32_t* _SrcImg, uint32_t* _DstImg, int _rows, int _cols, 
+    int _kernal_size_x, int _kernal_size_y, float needleAngle, CUstream _stream) {
 
     dim3 block_size(32, 32);
     int row_size = _rows % block_size.x == 0 ? _rows / block_size.x : (_rows / block_size.x + 1);
     int col_size = _cols % block_size.y == 0 ? _cols / block_size.y : (_cols / block_size.y + 1);
     dim3 thread_size(row_size, col_size);
 
-    inter2color << < block_size, thread_size, 0, _stream >> > (_SampleNum, _SrcIntensity, _SrcImg,  _rows, _cols, _kernal_size_x);
+    inter2color << < block_size, thread_size, 0, _stream >> > (_NoiseImg, _NoiseRows,  _NoiseCols,  _SampleNum, _SrcIntensity, _SrcImg,  _rows, _cols, _kernal_size_x);
     postProcess_x <<< block_size, thread_size, 0, _stream >>> (_SrcImg, _DstImg, _rows, _cols, _kernal_size_x);
     postProcess_y <<< block_size, thread_size, 0, _stream >>> (_SrcImg, _DstImg, _rows, _cols, _kernal_size_y);
-    postProcess_mask << <block_size, thread_size, 0, _stream >> > (_SrcImg, _rows, _cols);
+    postProcess_mask << <block_size, thread_size, 0, _stream >> > (_SrcImg, _rows, _cols, needleAngle);
 }

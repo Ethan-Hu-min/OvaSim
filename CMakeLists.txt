@@ -16,14 +16,8 @@ set(OH_SDK_BASE "C:/OpenHaptics/Developer/3.5.0")
 set(Platform "x64")
 
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
-find_package(Qt${QT_VERSION_MAJOR}
-    COMPONENTS
-        Core
-        Gui
-        Widgets
-        OpenGLWidgets
-)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core SerialPort)
+
 qt_standard_project_setup()
 
 if( POLICY CMP0072 )
@@ -83,6 +77,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS
         Gui
         Widgets
         OpenGLWidgets
+        Serialport
 )
 
 # Include all CMake Macros.
@@ -545,6 +540,7 @@ target_link_libraries(${PROJECT_NAME}
         Qt::Gui
         Qt::Widgets
         Qt::OpenGLWidgets
+        Qt::SerialPort
         hd.lib 
 	    hl.lib
 	    hdu.lib

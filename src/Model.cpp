@@ -91,12 +91,13 @@ void Model::loadOBJ() {
 
 			}
 			mesh->indexModel = this->indexModel;
-			if (material_inside.mat_name == "Ovary")mesh->indexMaterial = OVARY;
-			if (material_inside.mat_name == "Uterus")mesh->indexMaterial = UTERUS;
-			if (material_inside.mat_name == "Intestine")mesh->indexMaterial = INTESTINE;
-			if (material_inside.mat_name == "Bladder")mesh->indexMaterial = BLADDER;
-			if (material_inside.mat_name == "Ovam")mesh->indexMaterial = OVAM;
-
+			if (material_inside == "Ovary")mesh->indexMaterial = OVARY;
+			else if (material_inside == "Uterus")mesh->indexMaterial = UTERUS;
+			else if (material_inside == "Uterusin")mesh->indexMaterial = UTERUSIN;
+			else if (material_inside == "Intestine")mesh->indexMaterial = INTESTINE;
+			else if (material_inside == "Bladder")mesh->indexMaterial = BLADDER;
+			else if (material_inside == "Ovam")mesh->indexMaterial = OVAM;
+			else 	mesh->indexMaterial = 999;
 			if (mesh->vertex.empty())delete mesh;
 			else this->meshes.push_back(mesh);
 		}

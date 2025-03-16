@@ -35,14 +35,13 @@ static __forceinline__ __device__ T* getPRD()
 }
 
 __constant__ struct {
-    float impetance_in[17];
-    float impetance_out[17];
-    float thickness[17];
+    float impetance_in[6]; // bladder, uterus, uterusin, intestine, ovary, ovam
+    float impetance_out[6];
+    float thickness[6];
 }  impetanceParams = {
-    {1.49, 1.62, 1.49, 1.99, 1.62, 1.62, 1.49, 1.49, 1.49, 1.49, 1.49, 1.49, 1.49, 1.49, 1.49, 1.49, 1.49},
-    //{1.49, 1.62, 1.99, 1.62, 1.62, 1.49, 1.49, 1.49, 1.49, 1.49, 1.49, 1.49, 1.49, 1.49, 1.49, 1.49}
-    {1.99, 1.99, 1.62, 1.99, 1.99, 1.99, 1.62, 1.62, 1.62, 1.62, 1.62, 1.62, 1.62, 1.62, 1.62, 1.62, 1.62},
-    { 2.0,  2.0,  2.0,  2.0,  2.0,  2.0,  2.0,  2.0,  2.0,  2.0,  2.0,  2.0,  2.0,  2.0,  2.0,  2.0, 2.0},
+    {1.49, 1.62, 1.49, 1.99, 1.62, 1.49},
+    {1.99, 1.99, 1.62, 1.99, 1.99, 1.62},
+    { 5.0,  2.0,  2.0,  2.0,  2.0,  2.0},
 };
 
 static __forceinline__ __device__
@@ -91,9 +90,9 @@ uint32_t calculate_color(const float attenuation) {
 
 
 __device__
-void render_border(const vec3f& touch, const vec3f& dir, const int modelID, float color_intensity) {
-    unsigned int nowseed = tea<16>(int(touch.x * 10000), modelID);
-    float offset = rnd(nowseed) * 2.0 * impetanceParams.thickness[modelID];
+void render_border(const vec3f& touch, const vec3f& dir, const int materialID, float color_intensity) {
+    unsigned int nowseed = tea<16>(int(touch.x * 10000), materialID);
+    float offset = rnd(nowseed) * 2.0 * impetanceParams.thickness[materialID];
     vec3f now_pos;
     vec3f rela_pos;
     int rela_x;
@@ -173,11 +172,10 @@ extern "C" __global__ void __closesthit__radiance()
     const TriangleMeshSBTData& sbtData = *(const TriangleMeshSBTData*)optixGetSbtDataPointer();
     const int ray_i = optixGetLaunchIndex().x;
     const int ray_sample = optixGetLaunchIndex().y;
-
-    if (ray_i < transducer.nums) {
-
+    if (ray_i + ray_sample != 0) {
         const vec3i index = sbtData.index[ray_i];
         const int indexModel = sbtData.indexModelSBT;
+        const int indexMaterial = sbtData.materialID;
         const float u = optixGetTriangleBarycentrics().x;
         const float v = optixGetTriangleBarycentrics().y;
         const vec3f& A = sbtData.vertex[index.x];
@@ -192,8 +190,8 @@ extern "C" __global__ void __closesthit__radiance()
         const vec3f pos = (1.f - u - v) * A + u * B + v * C;
         bool is_inside = (dot(ray_dir, Ns) > 0.0f);
         vec3f shading_normal = is_inside ? -Ns : Ns; // 确保法线指向射线来源的外侧
-        float Z1 = is_inside ? impetanceParams.impetance_in[indexModel] : impetanceParams.impetance_out[indexModel];
-        float Z2 = is_inside ? impetanceParams.impetance_out[indexModel] : impetanceParams.impetance_in[indexModel];
+        float Z1 = is_inside ? impetanceParams.impetance_in[indexMaterial] : impetanceParams.impetance_out[indexMaterial];
+        float Z2 = is_inside ? impetanceParams.impetance_out[indexMaterial] : impetanceParams.impetance_in[indexMaterial];
 
         // 计算反射系数
         float R = fabsf((Z2 - Z1) / (Z2 + Z1));
@@ -232,21 +230,22 @@ extern "C" __global__ void __closesthit__radiance()
         const vec3f lastinter = isect->position;
         int render_textureID = 0;
 
-        render_border(world_raypos, shading_normal, nowModel, now_attenuation);
+        render_border(world_raypos, shading_normal, indexMaterial, now_attenuation + 0.1);
 
         if ((abs(lastinter.x) > 0.01f || abs(lastinter.y) > 0.01f)) {
             if (nowModel == lastModel) {
-                if (nowModel == 0)render_textureID = 1;
-                else if (nowModel == 1)render_textureID = 2;
-                else if (nowModel == 2)render_textureID = 3;
-                else if (nowModel == 3)render_textureID = 4;
-                else if (nowModel == 4 || nowModel == 5)render_textureID = 5;
-                else render_textureID = 6;
+                render_textureID = indexMaterial;
+                //if (nowModel == 0)render_textureID = 1;
+                //else if (nowModel == 1)render_textureID = 2;
+                //else if (nowModel == 2)render_textureID = 3;
+                //else if (nowModel == 3)render_textureID = 4;
+                //else if (nowModel == 4 || nowModel == 5)render_textureID = 5;
+                //else render_textureID = 6;
             }
             else {
-                if (nowModel > 5 || lastModel > 5)render_textureID = 5;
-                else if (nowModel == 2 || lastModel == 2)render_textureID = 2;
-                else render_textureID = 0;
+                if (nowModel > 5 || lastModel > 5)render_textureID = 5; //ovary
+                else if (nowModel == 2 || lastModel == 2)render_textureID = 2; //uerusin
+                else render_textureID = 0; // bg
             }
 
             //if (ray_i == 100)render_fragment(ray_orig, ray_dir, int(length(t_hit * ray_dir)), 0, 0.1, now_attenuation);
@@ -292,7 +291,7 @@ extern "C" __global__ void __miss__radiance()
     const vec3f ray_dir = optixGetWorldRayDirection();
     const int ray_i = optixGetLaunchIndex().x;
     //if(ray_i == 100)render_fragment(ray_orig, ray_dir, 400, 0, 0, now_attenuation);
-    render_fragment(ray_orig, ray_dir, 400, 0, 1.0, 1.0);
+    render_fragment(ray_orig, ray_dir, 600, 0,  0.3, 1.0);
 }
 
 //------------------------------------------------------------------------------

@@ -3,11 +3,12 @@
 #include <array>
 #include "gdt/gdt/math/AffineSpace.h"
 
-#define OVARY 1
+#define BLADDER 1
 #define UTERUS 2
-#define INTESTINE 3
-#define BLADDER 4
-#define OVAM 5
+#define UTERUSIN 3
+#define INTESTINE 4
+#define OVARY 5
+#define OVAM 6
 
 using namespace gdt;
 
@@ -29,8 +30,8 @@ struct  TriangleMesh
 class Model
 {
 public:
-	Model(std::string fname, std::vector<double> d, std::vector<double> s, Material& inside, Material& outside)
-		: filename(std::move(fname)), deltas(d), scaling(s), material_inside(inside), material_outside(outside)
+	Model(std::string fname, std::vector<double> d, std::vector<double> s, std::string& inside)
+		: filename(std::move(fname)), deltas(d), scaling(s), material_inside(inside)
 	{
 	}
 	~Model() {
@@ -43,7 +44,7 @@ public:
 	int indexModel = -1;
 	std::vector<double> deltas;
 	std::vector<double> scaling;
-	Material& material_inside;
-	Material& material_outside;
+	std::string material_inside;
+	//Material& material_outside;
 	vec3f modelCenter;
 };

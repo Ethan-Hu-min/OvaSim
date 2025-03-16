@@ -14,6 +14,7 @@ struct  TriangleMeshSBTData
 	vec3f* vertex;
 	vec3i* index;
 	int indexModelSBT;
+	int materialID;
 };
 
 struct USLaunchParams {

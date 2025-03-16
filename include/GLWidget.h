@@ -7,7 +7,7 @@
 #include<QOpenGLExtraFunctions>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
-
+#include <QSerialPort>
 #include<QTime>
 #include <qstring.h>
 
@@ -20,14 +20,18 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLExtraFunctions {
 signals: 	void fpsChanged(int fps);
 signals:	void needleSwitchSignal(QString status);
 signals:	void ovamNumsSignal(int nums);
+signals:    void collideInfo(int infoIndex);
+signals:    void nowCapacity(int value);
+signals:    void ExitWin();
 
 public: 
 	GLWidget(QWidget* parent = nullptr);
 	~GLWidget();
-
+	void closeEvent(QCloseEvent*) override;
 	void createRenderer();
-	void keyPressEvent(QKeyEvent* event);
-
+	void keyPressEvent(QKeyEvent* event) override;
+	void keyReleaseEvent(QKeyEvent* event) override;
+	void openSerialPort();
 
 public slots:
 	void initializeGL() Q_DECL_OVERRIDE;
@@ -39,6 +43,9 @@ public slots:
 	void setStartRenderFalse();
 
 	void setOriginDevice();
+
+	void onReadyRead();
+	void sendCommand();
 	//void initTextures();
 	//void initShaders();
 
@@ -53,6 +60,10 @@ private:
 	bool startRender = false;
 	int controlMode = 1;//1 for keyboard; 2 for device
 	bool needleSwitch = false;
+
+	int collideModel = -1;
+	int tubeCapacity = 0;
+
 
 	vec3f originTransducerPos;
 	vec3f originTransducerDir;
@@ -74,6 +85,13 @@ private:
 	HDSchedulerHandle hForceGLCallback;
 	DeviceInfo DeviceWidgetInfo;
 
+	HardwareInfo GLHWinfo;
+
+	int needleDepth = 0;
+	QSerialPort* serial;
+	QTimer* serialTimer = nullptr;
+	QByteArray serialBuffer;             // 数据缓冲区
+	void processLine(const QByteArray& line); // 解析单行数据
 };
 
 

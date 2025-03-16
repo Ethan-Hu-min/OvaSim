@@ -31,5 +31,4 @@ public:
   	std::vector<Model> models;
 	std::vector<TriangleMesh*> worldmodel;
 	Transducer transducer;
-	std::unordered_map<std::string, Material> materials;
 };

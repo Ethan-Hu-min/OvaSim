@@ -34,28 +34,28 @@ void Scene::parseConfig(std::string config_dir) {
 
 	if (jsonDoc.isObject()) {
 		QJsonObject jsonObj = jsonDoc.object();
-		QJsonValue matsValue = jsonObj.value("materials");
-		if (matsValue.isArray()) {
-			QJsonArray matsArray = matsValue.toArray();
-			for (const QJsonValue& matValue : matsArray) {
-				if (matValue.isObject()) {
-					QJsonObject matObj = matValue.toObject();
-					Material mat;
-					mat.mat_name = std::string(matObj.value("name").toString().toLocal8Bit());
-					mat.impedance = matObj.value("impedance").toDouble();
-					mat.attenuation = matObj.value("attenuation").toDouble();
-					mat.mu0 = matObj.value("mu0").toDouble();
-					mat.mu1 = matObj.value("mu1").toDouble();
-					mat.sigma = matObj.value("sigma").toDouble();
-					mat.specularity = matObj.value("specularity").toDouble();
-					materials[mat.mat_name] = mat;
-				}
-			}
-		}
-		else {
-			qDebug() << "materials must be an array";
-			throw std::runtime_error("materials must be an array");
-		}
+		//QJsonValue matsValue = jsonObj.value("materials");
+		//if (matsValue.isArray()) {
+		//	QJsonArray matsArray = matsValue.toArray();
+		//	for (const QJsonValue& matValue : matsArray) {
+		//		if (matValue.isObject()) {
+		//			QJsonObject matObj = matValue.toObject();
+		//			Material mat;
+		//			mat.mat_name = std::string(matObj.value("name").toString().toLocal8Bit());
+		//			mat.impedance = matObj.value("impedance").toDouble();
+		//			mat.attenuation = matObj.value("attenuation").toDouble();
+		//			mat.mu0 = matObj.value("mu0").toDouble();
+		//			mat.mu1 = matObj.value("mu1").toDouble();
+		//			mat.sigma = matObj.value("sigma").toDouble();
+		//			mat.specularity = matObj.value("specularity").toDouble();
+		//			materials[mat.mat_name] = mat;
+		//		}
+		//	}
+		//}
+		//else {
+		//	qDebug() << "materials must be an array";
+		//	throw std::runtime_error("materials must be an array");
+		//}
 
 		QJsonValue meshesValue = jsonObj.value("meshes");
 		if (meshesValue.isArray()) {
@@ -76,7 +76,7 @@ void Scene::parseConfig(std::string config_dir) {
 					for (int i = 0; i < scalingsArray.size(); ++i) {
 						scalings.push_back(scalingsArray[i].toDouble());
 					}
-					models.emplace_back(Model(file, deltas, scalings, materials.at(material), materials.at(outsideMaterial)));
+					models.emplace_back(Model(file, deltas, scalings, material ));
 				}
 			}
 		}
