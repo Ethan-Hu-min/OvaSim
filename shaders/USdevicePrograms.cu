@@ -40,7 +40,7 @@ __constant__ struct {
     float thickness[6];
 }  impetanceParams = {
     {1.49, 1.62, 1.49, 1.99, 1.62, 1.49},
-    {1.99, 1.99, 1.62, 1.99, 1.99, 1.62},
+    {1.99, 1.99, 1.62, 1.99, 1.99, 1.49},
     { 5.0,  2.0,  2.0,  2.0,  2.0,  2.0},
 };
 
@@ -291,7 +291,7 @@ extern "C" __global__ void __miss__radiance()
     const vec3f ray_dir = optixGetWorldRayDirection();
     const int ray_i = optixGetLaunchIndex().x;
     //if(ray_i == 100)render_fragment(ray_orig, ray_dir, 400, 0, 0, now_attenuation);
-    render_fragment(ray_orig, ray_dir, 600, 0,  0.3, 1.0);
+    render_fragment(ray_orig, ray_dir, 600, 0,  0.2, 1.0);
 }
 
 //------------------------------------------------------------------------------

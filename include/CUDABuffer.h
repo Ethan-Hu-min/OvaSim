@@ -16,6 +16,7 @@ struct CUDABuffer {
 		assert(d_ptr == nullptr);
 		this->sizeInBytes = size;
 		CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&d_ptr), sizeInBytes));
+		CUDA_CHECK(cudaMemset(d_ptr, 0, sizeInBytes));
 	}
 	void free() {
 		CUDA_CHECK(cudaFree(d_ptr));

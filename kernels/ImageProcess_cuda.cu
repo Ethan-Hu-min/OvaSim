@@ -22,6 +22,7 @@ __global__ void inter2color(uint8_t* _Noise, int _NoiseRows, int NoiseCols,  int
     int _img_idx = _row_idx + _col_idx * _rows;
     if (_img_idx >= _NoiseRows * NoiseCols)return;
     float nowintensity = _SrcInt[_img_idx] / float(_SampleNum);
+    if (nowintensity < 0.2)nowintensity = 0;
     float noiseValue = static_cast<float>(_Noise[_img_idx]) / 255.0;
     float noiseCoff = 0.2 + 0.8 * noiseValue;
     _DstImg[_img_idx] = calculate_color(nowintensity * noiseCoff + 0.1);

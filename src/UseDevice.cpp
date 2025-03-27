@@ -62,7 +62,8 @@ HDCallbackCode HDCALLBACK ForceDeviceCallback(void* data)
     if (distance < 10) x = distance * forceDirection;
     else x = 10 * forceDirection;
     hduVector3Dd f = nowInfo -> dampingForce * x;
-    f[2] = 0;
+
+
     hduVector3Dd diffAngles = sphereAngle - angles;
     hduVector3Dd t = nowInfo -> dampingTorque *1000*  diffAngles;
 
@@ -112,10 +113,13 @@ HDCallbackCode HDCALLBACK ForceGLCallback(void* data)
     double distance = (position - spherePosition).magnitude();
     hduVector3Dd forceDirection = (spherePosition - position) / distance;
     hduVector3Dd x;
-    if (distance < 10) x = distance * forceDirection;
-    else x = 10 * forceDirection;
+    if (distance < 30) x = distance * forceDirection;
+    else x = 30 * forceDirection;
     hduVector3Dd f = nowInfo->dampingForce * x;
-    f[2] = 0;
+    if (f[2] < 0)f[2] = 0;
+   
+    
+
     hduVector3Dd diffAngles = sphereAngle - angles;
     hduVector3Dd t = nowInfo->dampingTorque * 1000 * diffAngles;
 
@@ -123,7 +127,7 @@ HDCallbackCode HDCALLBACK ForceGLCallback(void* data)
     nowInfo->angles_torque = t / 1000.0;
 
     hdSetDoublev(HD_CURRENT_FORCE, f);
-    hdSetDoublev(HD_CURRENT_GIMBAL_TORQUE, t);
+    //hdSetDoublev(HD_CURRENT_GIMBAL_TORQUE, t);
 
     hdEndFrame(hdGetCurrentDevice());
 

@@ -6,6 +6,7 @@
 GLWidget::GLWidget(QWidget* parent)
 	: QOpenGLWidget(parent)
 {
+    setAttribute(Qt::WA_DeleteOnClose);
     hHD = hdInitDevice(HD_DEFAULT_DEVICE);
     if (HD_DEVICE_ERROR(error = hdGetError()))
     {
@@ -26,8 +27,10 @@ GLWidget::GLWidget(QWidget* parent)
     openSerialPort();
     //originTransducerPos = vec3f(50.0f, -200.0f, 100.0f);
     originTransducerPos = vec3f(20.0f, -150.0f, 100.0f);
-    originTransducerDir = vec3f(-0.59304577f, -0.1078265f, 0.79791613f);
-    originTransducerVer = vec3f(0.78504567f, 0.14273558f, 0.60276848f);
+    originTransducerDir = vec3f(0.64084805f, -0.68662291f, 0.34331146f);
+    originTransducerHor = vec3f(0.73105527f, -0.68231825f, 0.0f);
+    originTransducerVer = normalize(cross(originTransducerHor, originTransducerDir));
+
     originTransducerAngle = 120.0;
     createRenderer();
 }
@@ -258,7 +261,7 @@ void GLWidget::paintGL()
         usRenderer->downloadPixels();
         usRenderer->downloadCollideInfo();
         collideModel = usRenderer->getCollideModel();
-        qDebug() << "[INFO]Model: " << collideModel;
+        //qDebug() << "[INFO]Model: " << collideModel;
         if(collideModel < 4 && collideModel >=0)emit collideInfo(collideModel);//0,1,2,3 for other model;
         if (collideModel < 6 && needleSwitch)emit collideInfo(10);//error using needleswitch;
         
@@ -281,9 +284,22 @@ void GLWidget::paintGL()
         glDisable(GL_TEXTURE_2D);
 
         glBegin(GL_LINES);
-        glColor3f(0.6, 0.6, 0.6);
+        glColor3f(0.9, 0.9, 0.9);
         glVertex2f(needleStartX, needleStartY);
         glVertex2f(needleEndX, needleEndY);
+        glEnd();
+
+        glBegin(GL_LINES);
+        glColor3f(0.9, 0.9, 0.9);
+        glVertex2f(needleStartX, needleStartY+0.02);
+        glVertex2f(needleEndX, needleEndY+0.02);
+        glEnd();
+
+        glPointSize(3.0);                   // 点大小
+        glColor3f(1.0, 1.0, 1.0);           // 黄色
+        glBegin(GL_POINTS);
+        glVertex2f(needleEndX - 0.01, needleEndY + 0.01);               // 原线段末端延伸点
+        glVertex2f(needleEndX - 0.01, needleEndY + 0.03); // 平移线段末端延伸点
         glEnd();
 
     }
@@ -306,9 +322,9 @@ void GLWidget::setImage()
             float changeRow = DeviceWidgetInfo.angles[0] - originDeviceAngles.x;
             float changePitch = DeviceWidgetInfo.angles[1] - originDeviceAngles.y;
             float changeYaw = DeviceWidgetInfo.angles[2] - originDeviceAngles.z;
-            usRenderer->changeTransducerAbs(changeRow, -changePitch, changeYaw);
+            usRenderer->changeTransducerAbs(changeRow , -changePitch, changeYaw , originTransducerDir, originTransducerHor, originTransducerVer);
             //usRenderer->changeTransducerAbs(changeRow, -changePitch, 0.0);
-            usRenderer->changeNeedleAbs((1024 - needleDepth) / 1024.0);
+            usRenderer->changeNeedleAbs((1024 - needleDepth) / 1024.0 );
         }
 
         if (!hdWaitForCompletion(hForceGLCallback, HD_WAIT_CHECK_STATUS))
@@ -322,16 +338,19 @@ void GLWidget::setImage()
 
 void GLWidget::setStartRenderTrue() {
 
-    DeviceWidgetInfo.originPos = hduVector3Dd(0, -30, -80);
+    DeviceWidgetInfo.originPos = hduVector3Dd(0, -60, -60);
     DeviceWidgetInfo.originAngle = hduVector3Dd(0, 0, 0);
-    DeviceWidgetInfo.dampingForce = 0.2;
+    DeviceWidgetInfo.dampingForce = 0.3;
     DeviceWidgetInfo.dampingTorque = 1.0;
 
     hForceGLCallback = hdScheduleAsynchronous(
         ForceGLCallback, &DeviceWidgetInfo, HD_DEFAULT_SCHEDULER_PRIORITY);
+
+
     qDebug() << "device has used";
     startRender = true;
-    setOriginDevice();
+    QTimer::singleShot(100, this, &GLWidget::setOriginDevice);
+
     update();
 }
 
@@ -344,5 +363,7 @@ void GLWidget::setStartRenderFalse() {
 void GLWidget::setOriginDevice() {
     originDevicePos = vec3f(DeviceWidgetInfo.position[0], DeviceWidgetInfo.position[1], DeviceWidgetInfo.position[2]);
     originDeviceAngles = vec3f(DeviceWidgetInfo.angles[0], DeviceWidgetInfo.angles[1], DeviceWidgetInfo.angles[2]);
+    DeviceWidgetInfo.originPos = hduVector3Dd(originDevicePos.x, originDevicePos.y, originDevicePos.z);
+    DeviceWidgetInfo.originAngle = hduVector3Dd(originDeviceAngles.x, originDeviceAngles.y, originDeviceAngles.z);
 }
 

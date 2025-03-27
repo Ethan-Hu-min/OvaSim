@@ -80,7 +80,18 @@ USRenderer::USRenderer(const Scene* scene) :scene(scene) {
 
 USRenderer::~USRenderer() {
     if (scene != nullptr) delete scene;
-
+    //raygenRecordsBuffer.free();
+    //missRecordsBuffer.free();
+    //hitgroupRecordsBuffer.free();
+    //tempBuffer.free();
+    //outputBuffer.free();
+    //launchParamsBuffer.free();
+    //colorBuffer.free();
+    //intensityBuffer.free();
+    //postprocessBuffer.free();
+    //collide_models_id.free();
+    //collide_models_pos.free();
+    //asBuffer.free();
     qDebug() << "USRenderer delete";
 
 
@@ -607,16 +618,25 @@ void USRenderer::changeTransducer(float angle, const vec3f& axis) {
     uslaunchParams.transducer.horizontal = rotateVector(prehor, angle, axis);
 }
 
-void USRenderer::changeTransducerAbs(float angleRoll, float anglePitch, float angleYaw) {
-    vec3f rotateDir1 = rotateVector(originDir, angleRoll, vec3f(1.0f, 0.0f, 0.0f));
-    vec3f rotateDir2 = rotateVector(rotateDir1, anglePitch, vec3f(0.0f, 1.0f, 0.0f));
-    vec3f rotateDir3 = rotateVector(rotateDir2, angleYaw, vec3f(0.0f, 0.0f, 1.0f));
-    vec3f rotateVer1 = rotateVector(originVer, angleRoll, vec3f(1.0f, 0.0f, 0.0f));
-    vec3f rotateVer2 = rotateVector(rotateVer1, anglePitch, vec3f(0.0f, 1.0f, 0.0f));
-    vec3f rotateVer3 = rotateVector(rotateVer2, angleYaw, vec3f(0.0f, 0.0f, 1.0f));
-    vec3f rotateHor1 = rotateVector(originHor, angleRoll, vec3f(1.0f, 0.0f, 0.0f));
-    vec3f rotateHor2 = rotateVector(rotateHor1, anglePitch, vec3f(0.0f, 1.0f, 0.0f));
-    vec3f rotateHor3 = rotateVector(rotateHor2, angleYaw, vec3f(0.0f, 0.0f, 1.0f));
+void USRenderer::changeTransducerAbs(float angleRoll, float anglePitch, float angleYaw, vec3f dir, vec3f hor, vec3f ver) {
+    //vec3f rotateDir1 = rotateVector(originDir, angleRoll, vec3f(1.0f, 0.0f, 0.0f));
+    //vec3f rotateDir2 = rotateVector(rotateDir1, anglePitch, vec3f(0.0f, 1.0f, 0.0f));
+    //vec3f rotateDir3 = rotateVector(rotateDir2, angleYaw, vec3f(0.0f, 0.0f, 1.0f));
+    //vec3f rotateVer1 = rotateVector(originVer, angleRoll, vec3f(1.0f, 0.0f, 0.0f));
+    //vec3f rotateVer2 = rotateVector(rotateVer1, anglePitch, vec3f(0.0f, 1.0f, 0.0f));
+    //vec3f rotateVer3 = rotateVector(rotateVer2, angleYaw, vec3f(0.0f, 0.0f, 1.0f));
+    //vec3f rotateHor1 = rotateVector(originHor, angleRoll, vec3f(1.0f, 0.0f, 0.0f));
+    //vec3f rotateHor2 = rotateVector(rotateHor1, anglePitch, vec3f(0.0f, 1.0f, 0.0f));
+    //vec3f rotateHor3 = rotateVector(rotateHor2, angleYaw, vec3f(0.0f, 0.0f, 1.0f));
+    vec3f rotateDir1 = rotateVector(originDir, angleRoll, dir);
+    vec3f rotateDir2 = rotateVector(rotateDir1, anglePitch, hor);
+    vec3f rotateDir3 = rotateVector(rotateDir2, angleYaw,ver);
+    vec3f rotateVer1 = rotateVector(originVer, angleRoll, dir);
+    vec3f rotateVer2 = rotateVector(rotateVer1, anglePitch, hor);
+    vec3f rotateVer3 = rotateVector(rotateVer2, angleYaw,ver);
+    vec3f rotateHor1 = rotateVector(originHor, angleRoll, dir);
+    vec3f rotateHor2 = rotateVector(rotateHor1, anglePitch, hor);
+    vec3f rotateHor3 = rotateVector(rotateHor2, angleYaw,ver);
     uslaunchParams.transducer.direction = normalize(rotateDir3);
     uslaunchParams.transducer.vertical = normalize(rotateVer3);
     uslaunchParams.transducer.horizontal = normalize(rotateHor3);

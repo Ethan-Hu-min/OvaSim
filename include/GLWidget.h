@@ -58,7 +58,7 @@ private:
 	int fps = 0;
 
 	bool startRender = false;
-	int controlMode = 1;//1 for keyboard; 2 for device
+	int controlMode = 2;//1 for keyboard; 2 for device
 	bool needleSwitch = false;
 
 	int collideModel = -1;
@@ -67,6 +67,7 @@ private:
 
 	vec3f originTransducerPos;
 	vec3f originTransducerDir;
+	vec3f originTransducerHor;
 	vec3f originTransducerVer;
 
 	float originTransducerAngle;

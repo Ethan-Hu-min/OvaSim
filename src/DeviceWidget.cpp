@@ -33,7 +33,8 @@ DeviceWidget::DeviceWidget(QWidget *parent)
     ui.device_para_name->setText(hdGetString(HD_DEVICE_MODEL_TYPE));
 
     DeviceWidgetInfo.originPos = hduVector3Dd(0,0,0);
-    DeviceWidgetInfo.originAngle = hduVector3Dd(0, 0, 0);
+    DeviceWidgetInfo.originAngle = hduVector3Dd(0, 0, 0); 
+
     DeviceWidgetInfo.dampingForce = 0.2;
     DeviceWidgetInfo.dampingTorque = 1.0;
 
@@ -87,6 +88,15 @@ DeviceWidget::~DeviceWidget()
     if(timer != nullptr)delete timer;
     if (serialTimer != nullptr)delete serialTimer;
 }
+
+void DeviceWidget::setOriginDevice() {
+    originDevicePos = DeviceWidgetInfo.position;
+    originDeviceAngles = DeviceWidgetInfo.angles;
+    qDebug() <<"originPos " << originDevicePos[0] << originDevicePos[1] << originDevicePos[2];
+    DeviceWidgetInfo.originPos = originDevicePos;
+    DeviceWidgetInfo.originAngle = originDeviceAngles;
+}
+
 
 
 void DeviceWidget::closeEvent(QCloseEvent*) {
@@ -201,6 +211,17 @@ void DeviceWidget::on_clicked_force_button() {
         hForceCallback = hdScheduleAsynchronous(
             ForceDeviceCallback, &DeviceWidgetInfo, HD_DEFAULT_SCHEDULER_PRIORITY);
 
+       QTimer::singleShot(100, this, &DeviceWidget::setOriginDevice);
+
+
+
+        ui.device_origin_x->setValue(DeviceWidgetInfo.originPos[0]);
+        ui.device_origin_y->setValue(DeviceWidgetInfo.originPos[1]);
+        ui.device_origin_z->setValue(DeviceWidgetInfo.originPos[2]);
+
+        ui.device_origin_gamma->setValue(DeviceWidgetInfo.originAngle[0]);
+        ui.device_origin_beta->setValue(DeviceWidgetInfo.originAngle[1]);
+        ui.device_origin_alpha->setValue(DeviceWidgetInfo.originAngle[2]);
     }
 }
 
@@ -227,12 +248,13 @@ void DeviceWidget::showData() {
 
         DeviceWidgetInfo.dampingForce = ui.device_origin_damping->value();
         DeviceWidgetInfo.dampingTorque = ui.device_origin_damping_torque->value();
-        DeviceWidgetInfo.originPos[0] = ui.device_origin_x->value();
-        DeviceWidgetInfo.originPos[1] = ui.device_origin_y->value();
-        DeviceWidgetInfo.originPos[2] = ui.device_origin_z->value();
-        DeviceWidgetInfo.originAngle[0] = ui.device_origin_gamma->value();
-        DeviceWidgetInfo.originAngle[1] = ui.device_origin_beta->value();
-        DeviceWidgetInfo.originAngle[2] = ui.device_origin_alpha->value();
+        //DeviceWidgetInfo.originPos[0] = ui.device_origin_x->value();
+        //DeviceWidgetInfo.originPos[1] = ui.device_origin_y->value();
+        //DeviceWidgetInfo.originPos[2] = ui.device_origin_z->value();
+        //DeviceWidgetInfo.originAngle[0] = ui.device_origin_gamma->value();
+        //DeviceWidgetInfo.originAngle[1] = ui.device_origin_beta->value();
+        //DeviceWidgetInfo.originAngle[2] = ui.device_origin_alpha->value();
+        qDebug() << DeviceWidgetInfo.originPos[0] << DeviceWidgetInfo.originPos[1] << DeviceWidgetInfo.originPos[2];
 
 
 

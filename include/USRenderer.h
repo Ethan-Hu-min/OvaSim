@@ -29,7 +29,7 @@ public:
 	void setTransducer(const Transducer& transducer);
 	void getTransducer();
 	void changeTransducer(float angle, const vec3f& axis);
-	void changeTransducerAbs(float angleRoll, float anglePitch, float angleYaw);
+	void changeTransducerAbs(float angleRoll, float anglePitch, float angleYaw, vec3f dir, vec3f hor, vec3f ver);
 	void setNeedle(float r_angle, float r_depth);
 	void changeNeedle(float changeDepth);
 	void changeNeedleAbs(float changeDepth);

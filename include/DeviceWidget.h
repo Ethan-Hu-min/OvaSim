@@ -27,6 +27,8 @@ public:
     void keyPressEvent(QKeyEvent* event) override; 
     void keyReleaseEvent(QKeyEvent* event) override; 
     void openSerialPort();
+    void setOriginDevice();
+
 
 public slots:
     void showData();
@@ -51,7 +53,8 @@ private:
     bool forceButton = false;
     bool recordButton = false;
     
-   
+    hduVector3Dd originDevicePos;
+    hduVector3Dd originDeviceAngles;
 
     std::shared_ptr<spdlog::logger> deviceLog;
     int needleDepth = 0;
