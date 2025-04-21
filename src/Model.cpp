@@ -65,7 +65,7 @@ void Model::loadOBJ() {
 	}
 	qDebug() << "model index: " << this->indexModel;
 	qDebug() << "Done loading obj file - found " << shapes.size() << " shapes ";
-	//qDebug() << shapes[0].mesh.indices[0].vertex_index << (vec3f)attributes.vertices[1];
+	//qDebug() << shapes[0].mesh.indices[0].vertex_index <<       (vec3f)attributes.vertices[1];
 
 	this->modelCenter = calculCenter(attributes);
 	qDebug() << "modelCenter: " << this->modelCenter [0] << this->modelCenter[1]<< this->modelCenter[2];

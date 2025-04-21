@@ -254,7 +254,7 @@ void DeviceWidget::showData() {
         //DeviceWidgetInfo.originAngle[0] = ui.device_origin_gamma->value();
         //DeviceWidgetInfo.originAngle[1] = ui.device_origin_beta->value();
         //DeviceWidgetInfo.originAngle[2] = ui.device_origin_alpha->value();
-        qDebug() << DeviceWidgetInfo.originPos[0] << DeviceWidgetInfo.originPos[1] << DeviceWidgetInfo.originPos[2];
+        //qDebug() << DeviceWidgetInfo.originPos[0] << DeviceWidgetInfo.originPos[1] << DeviceWidgetInfo.originPos[2];
 
 
 
@@ -263,8 +263,9 @@ void DeviceWidget::showData() {
         ui.device_para_y_set->setText(QString::number(DeviceWidgetInfo.position[1], 'f', 2));
         ui.device_para_z_set->setText(QString::number(DeviceWidgetInfo.position[2], 'f', 2));
         ui.device_para_gamma_set->setText(QString::number(DeviceWidgetInfo.angles[0], 'f', 2));
-        ui.device_para_alpha_set->setText(QString::number(DeviceWidgetInfo.angles[2], 'f', 2));
         ui.device_para_beta_set->setText(QString::number(DeviceWidgetInfo.angles[1], 'f', 2));
+        ui.device_para_alpha_set->setText(QString::number(DeviceWidgetInfo.angles[2], 'f', 2));
+
 
         ui.device_para_x_force->setText(QString::number(DeviceWidgetInfo.position_force[0], 'f', 2));
         ui.device_para_y_force->setText(QString::number(DeviceWidgetInfo.position_force[1], 'f', 2));

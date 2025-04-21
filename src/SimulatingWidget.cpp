@@ -9,7 +9,7 @@ SimulatingWidget::SimulatingWidget(QWidget* parent) : QWidget(parent)
 	ui.MessPrint->setLineWrapMode(QTextEdit::WidgetWidth);
 	ui.MessPrint->setFont(QFont("Consolas", 10));
 	ui.progressBar->setRange(0, 100);
-	ui.progressBar->setValue(30);
+	ui.progressBar->setValue(10);
 
 	ui.progressBar->setTextVisible(false);
 
@@ -17,9 +17,13 @@ SimulatingWidget::SimulatingWidget(QWidget* parent) : QWidget(parent)
 	GLDisplayWidget->setMinimumSize(QSize(800, 600));
 	GLDisplayWidget->setMaximumSize(QSize(800, 600));
 	ui.verticalLayout->addWidget(GLDisplayWidget);
+
+	//resultLog dialog(&this);
 	
 	connect(ui.SimStartButton, SIGNAL(clicked(bool)), this->GLDisplayWidget, SLOT(setStartRenderTrue()));
 	connect(ui.SimStopButton, SIGNAL(clicked(bool)), this->GLDisplayWidget, SLOT(setStartRenderFalse()));
+	//connect(ui.SimStopButton, SIGNAL(clicked(bool)), dialog, SLOT(exec()));
+	//connect(ui.SimStopButton, &QPushButton::clicked, [&dialog]() {dialog.exec();});
 
 	connect(ui.SimStartButton, SIGNAL(clicked(bool)), this, SLOT(startTimer()));
 	connect(ui.SimStopButton, SIGNAL(clicked(bool)), this, SLOT(endTimer()));
@@ -28,9 +32,8 @@ SimulatingWidget::SimulatingWidget(QWidget* parent) : QWidget(parent)
 	connect(GLDisplayWidget, &GLWidget::needleSwitchSignal, ui.NeedleSwitchLabel, [this](QString status) { ui.NeedleSwitchLabel->setText(status); });
 	connect(GLDisplayWidget, &GLWidget::ovamNumsSignal, ui.OvamNuimsLabel, [this](int nums) { ui.OvamNuimsLabel->setNum(nums); });
 	connect(GLDisplayWidget, &GLWidget::ovamNumsSignal, ui.OvamRateLabel, [this](int nums) { ui.OvamRateLabel->setText(QString("%1 %").arg( nums * 100.0 / GlobalConfig::OvamNums,0, 'f', 1)); });
-	//connect(GLDisplayWidget, &GLWidget::nowCapacity, [this](int value) {ui.progressBar->setValue(value);});
-
-
+	
+	//connect(GLDisplayWidget, &GLWidget::ovamNumsSignal, ui.progressBar, [this](int nums) {ui.progressBar->setValue( (nums * 10) %100);});
 
 	connect(GLDisplayWidget, SIGNAL(collideInfo(int)), this, SLOT(displayError(int)));
 
@@ -45,9 +48,18 @@ SimulatingWidget::SimulatingWidget(QWidget* parent) : QWidget(parent)
 SimulatingWidget::~SimulatingWidget()
 {
 	qDebug() << "!!!!!!Simulating Widget Delete\n";
-	if(timer != nullptr)delete timer;
-	if (operateTimer != nullptr)delete operateTimer;
-	if(GLDisplayWidget != nullptr)delete GLDisplayWidget;
+	if (timer != nullptr) {
+		delete timer;
+		timer = nullptr;
+	}
+	if (operateTimer != nullptr) {
+		delete operateTimer;
+		timer = nullptr;
+	}
+	if (GLDisplayWidget != nullptr) {
+		delete GLDisplayWidget;
+		GLDisplayWidget = nullptr;
+	}
 
 }
 
@@ -73,7 +85,8 @@ void SimulatingWidget::displayError(int infoType) {
 		case 0: msg = "[警告]错误穿刺【膀胱】";break;
 		case 1: msg = "[警告]错误穿刺【子宫】";break;
 		case 2: msg = "[警告]错误穿刺【子宫】";break;
-		case 3: msg = "[警告]错误穿刺【肠道】 ";break;
+		case 3: msg = "[警告]错误穿刺【子宫】";break;
+		case 4: msg = "[警告]错误穿刺【肠道】 ";break;
 		case 10: msg = "[警告]错误吸取【不在卵泡内】";
 			break;
 		}

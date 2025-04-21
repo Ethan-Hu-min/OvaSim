@@ -79,21 +79,58 @@ USRenderer::USRenderer(const Scene* scene) :scene(scene) {
 }
 
 USRenderer::~USRenderer() {
-    if (scene != nullptr) delete scene;
-    //raygenRecordsBuffer.free();
-    //missRecordsBuffer.free();
-    //hitgroupRecordsBuffer.free();
-    //tempBuffer.free();
-    //outputBuffer.free();
-    //launchParamsBuffer.free();
-    //colorBuffer.free();
-    //intensityBuffer.free();
-    //postprocessBuffer.free();
-    //collide_models_id.free();
-    //collide_models_pos.free();
-    //asBuffer.free();
-    qDebug() << "USRenderer delete";
+    if (scene != nullptr) {
+        delete scene;
+        scene = nullptr;
+    }
+    raygenRecordsBuffer.free();
+    missRecordsBuffer.free();
+    hitgroupRecordsBuffer.free();
 
+    tempBuffer.free();
+    outputBuffer.free();
+    launchParamsBuffer.free();
+    colorBuffer.free();
+    intensityBuffer.free();
+
+    for (auto buffer : textureBuffer) {
+        buffer.free();
+    }
+    noiseBuffer.free();
+
+    postprocessBuffer.free();
+    collide_models_id.free();
+    collide_models_pos.free();
+
+    for (auto buffer : vertexBuffer) {
+        buffer.free();
+    }
+    for (auto buffer : indexBuffer) {
+        buffer.free();
+    }
+    for (auto buffer : normalBuffer) {
+        buffer.free();
+    }
+    for (auto buffer : originVertexBuffer) {
+        buffer.free();
+    }
+
+    asBuffer.free();
+    qDebug() << "!!! USRenderer delete";
+    optixPipelineDestroy(pipeline);
+
+
+    for (auto pg : raygenPGs) {
+        optixProgramGroupDestroy(pg);
+    }
+    for (auto pg : missPGs) {
+        optixProgramGroupDestroy(pg);
+    }
+    for (auto pg : hitgroupPGs) {
+        optixProgramGroupDestroy(pg);
+    }
+    optixModuleDestroy(module);
+    optixDeviceContextDestroy(optixContext);
 
 }
 
@@ -539,7 +576,7 @@ void USRenderer::render() {
 
 void USRenderer::setTransducer(const Transducer& _transducer)
 {
-    lastSetTransducer = _transducer;
+  lastSetTransducer = _transducer;
     uslaunchParams.transducer.width = _transducer.t_width;
     uslaunchParams.transducer.nums = _transducer.t_nums;
     uslaunchParams.transducer.angle = _transducer.t_angle;
@@ -560,6 +597,8 @@ void USRenderer::setTransducer(const Transducer& _transducer)
     uslaunchParams.frame.size.y = _transducer.t_nums;
 
     uslaunchParams.maxBounce = GlobalConfig::maxBounceNum;
+
+  
 
 }
 
@@ -616,9 +655,15 @@ void USRenderer::changeTransducer(float angle, const vec3f& axis) {
     uslaunchParams.transducer.direction = rotateVector(predir, angle, axis);
     uslaunchParams.transducer.vertical = rotateVector(prever, angle, axis);
     uslaunchParams.transducer.horizontal = rotateVector(prehor, angle, axis);
+
+    qDebug() << "nowdir:" << uslaunchParams.transducer.direction.x << uslaunchParams.transducer.direction.y << uslaunchParams.transducer.direction.z;
+    qDebug() << "nowhor:" << uslaunchParams.transducer.horizontal.x << uslaunchParams.transducer.horizontal.y << uslaunchParams.transducer.horizontal.z;
+    qDebug() << "nowver:" << uslaunchParams.transducer.vertical.x << uslaunchParams.transducer.vertical.y << uslaunchParams.transducer.vertical.z;
+
+
 }
 
-void USRenderer::changeTransducerAbs(float angleRoll, float anglePitch, float angleYaw, vec3f dir, vec3f hor, vec3f ver) {
+void USRenderer::changeTransducerAbs(float angleYaw , float anglePitch, float angleRoll, vec3f dir, vec3f hor, vec3f ver) {
     //vec3f rotateDir1 = rotateVector(originDir, angleRoll, vec3f(1.0f, 0.0f, 0.0f));
     //vec3f rotateDir2 = rotateVector(rotateDir1, anglePitch, vec3f(0.0f, 1.0f, 0.0f));
     //vec3f rotateDir3 = rotateVector(rotateDir2, angleYaw, vec3f(0.0f, 0.0f, 1.0f));
@@ -628,18 +673,38 @@ void USRenderer::changeTransducerAbs(float angleRoll, float anglePitch, float an
     //vec3f rotateHor1 = rotateVector(originHor, angleRoll, vec3f(1.0f, 0.0f, 0.0f));
     //vec3f rotateHor2 = rotateVector(rotateHor1, anglePitch, vec3f(0.0f, 1.0f, 0.0f));
     //vec3f rotateHor3 = rotateVector(rotateHor2, angleYaw, vec3f(0.0f, 0.0f, 1.0f));
-    vec3f rotateDir1 = rotateVector(originDir, angleRoll, dir);
-    vec3f rotateDir2 = rotateVector(rotateDir1, anglePitch, hor);
-    vec3f rotateDir3 = rotateVector(rotateDir2, angleYaw,ver);
-    vec3f rotateVer1 = rotateVector(originVer, angleRoll, dir);
+    vec3f nowDir = uslaunchParams.transducer.direction;
+
+
+    vec3f rotateDir2 = rotateVector(originDir, angleYaw, ver);
+    vec3f rotateDir3 = rotateVector(rotateDir2, anglePitch, hor);
+
+    vec3f rotateVer1 = rotateVector(originVer, angleYaw, ver);
     vec3f rotateVer2 = rotateVector(rotateVer1, anglePitch, hor);
-    vec3f rotateVer3 = rotateVector(rotateVer2, angleYaw,ver);
-    vec3f rotateHor1 = rotateVector(originHor, angleRoll, dir);
+    vec3f rotateVer3 = rotateVector(rotateVer2, angleRoll, rotateDir3);
+
+    vec3f rotateHor1 = rotateVector(originHor, angleYaw, ver);
     vec3f rotateHor2 = rotateVector(rotateHor1, anglePitch, hor);
-    vec3f rotateHor3 = rotateVector(rotateHor2, angleYaw,ver);
+    vec3f rotateHor3 = rotateVector(rotateHor2, angleRoll, rotateDir3);
+
+
+    //vec3f rotateDir1 = rotateVector(originDir, angleRoll, dir);
+    //vec3f rotateDir2 = rotateVector(rotateDir1, anglePitch, hor);
+    //vec3f rotateDir3 = rotateVector(rotateDir2, angleYaw,ver);
+    //vec3f rotateVer1 = rotateVector(originVer, angleRoll, dir);
+    //vec3f rotateVer2 = rotateVector(rotateVer1, anglePitch, hor);
+    //vec3f rotateVer3 = rotateVector(rotateVer2, angleYaw,ver);
+    //vec3f rotateHor1 = rotateVector(originHor, angleRoll, dir);
+    //vec3f rotateHor2 = rotateVector(rotateHor1, anglePitch, hor);
+    //vec3f rotateHor3 = rotateVector(rotateHor2, angleYaw,ver);
+
+
     uslaunchParams.transducer.direction = normalize(rotateDir3);
     uslaunchParams.transducer.vertical = normalize(rotateVer3);
     uslaunchParams.transducer.horizontal = normalize(rotateHor3);
+
+
+
 
 }
 
@@ -729,9 +794,12 @@ void USRenderer::getCollideId() {
             if (uslaunchParams.needle.relaDepth * uslaunchParams.frame.size.x / 2.0 > insecDistance[i]
                 && uslaunchParams.needle.relaDepth * uslaunchParams.frame.size.x / 2.0 < insecDistance[i + 1]) {
                 this->now_collide_model = this->collide_id[i];
-                if (this->collide_id[i] == this->collide_id[i + 1] && int(this->collide_id[i]) >= 6) {
+                if (this->collide_id[i] == this->collide_id[i + 1] && int(this->collide_id[i]) >= 7) {
                     this->now_collide_ovam = this->collide_id[i];
-                    this->now_ovam_pos = this->collide_pos[i];
+                    float now_needel_depth = uslaunchParams.needle.relaDepth * uslaunchParams.frame.size.x / 2.0;
+                    this->now_ovam_pos = uslaunchParams.transducer.position + normalize(this->collide_pos[i] - uslaunchParams.transducer.position) * now_needel_depth;
+
+                    //this->now_ovam_pos = this->collide_pos[i];
                     return;
                 }
             }

@@ -23,6 +23,13 @@
       "outsideMaterial": "Uterus"
     },
     {
+      "file": "Uterusinin.obj",
+      "deltas": [0.0,0.0,0.0],
+      "scaling": [1.0,1.0,1.0],
+      "material": "Uterusin", 
+      "outsideMaterial": "Uterusin"
+    },
+    {
       "file": "Intestine.obj",
       "deltas": [0.0,0.0,0.0],
       "scaling": [1.0,1.0,1.0],

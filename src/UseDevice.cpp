@@ -53,7 +53,7 @@ HDCallbackCode HDCALLBACK ForceDeviceCallback(void* data)
     nowInfo->position = position;
     nowInfo->angles[0] = angles[0] * 180.0;
     nowInfo->angles[1] = angles[1] * 180.0;
-    nowInfo->angles[2] = angles[2] * 180.0;
+    nowInfo->angles[2] = angles[2] * 60.0 ;
     // Find the distance between the device and the center of the
     // sphere.
     double distance = (position - spherePosition).magnitude();
@@ -107,7 +107,7 @@ HDCallbackCode HDCALLBACK ForceGLCallback(void* data)
     nowInfo->position = position;
     nowInfo->angles[0] = angles[0] * 180.0;
     nowInfo->angles[1] = angles[1] * 180.0;
-    nowInfo->angles[2] = angles[2] * 180.0;
+    nowInfo->angles[2] = angles[2] * 60.0;
     // Find the distance between the device and the center of the
     // sphere.
     double distance = (position - spherePosition).magnitude();

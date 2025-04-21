@@ -68,6 +68,7 @@ private:
 	vec3f originTransducerPos;
 	vec3f originTransducerDir;
 	vec3f originTransducerHor;
+
 	vec3f originTransducerVer;
 
 	float originTransducerAngle;

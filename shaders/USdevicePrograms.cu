@@ -195,7 +195,7 @@ extern "C" __global__ void __closesthit__radiance()
 
         // 计算反射系数
         float R = fabsf((Z2 - Z1) / (Z2 + Z1));
-
+        
         //生成随机数决定反射或折射
         unsigned int seed = tea<16>(optixGetLaunchIndex().x, optixGetRayTmax());
         float rand_val = rnd(seed);
@@ -209,14 +209,14 @@ extern "C" __global__ void __closesthit__radiance()
         if (rand_val < R) {
             // 反射
             new_dir = USreflect(ray_dir, shading_normal, ray_sample);
-            isect->intensity *= R;
+           // isect->intensity *= R;
         }
         else {
             // 折射
             vec3f refracted_dir;
             bool has_refracted = USrefract(ray_dir, shading_normal, Z1, Z2, refracted_dir, ray_sample);
             new_dir = has_refracted ? refracted_dir : USreflect(ray_dir, shading_normal, ray_sample);
-            isect->intensity *= (1.0f - R);
+            //isect->intensity *= (1.0f - R);
         }
         new_dir -= dot(new_dir, optixLaunchParams.transducer.vertical) * optixLaunchParams.transducer.vertical;
 
@@ -243,8 +243,9 @@ extern "C" __global__ void __closesthit__radiance()
                 //else render_textureID = 6;
             }
             else {
-                if (nowModel > 5 || lastModel > 5)render_textureID = 5; //ovary
+                if (nowModel > 6 || lastModel > 6)render_textureID = 5; //ovary
                 else if (nowModel == 2 || lastModel == 2)render_textureID = 2; //uerusin
+                else if (nowModel == 3 || lastModel == 3)render_textureID = 3;
                 else render_textureID = 0; // bg
             }
 

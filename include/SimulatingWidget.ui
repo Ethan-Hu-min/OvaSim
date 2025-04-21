@@ -114,6 +114,18 @@
      <height>41</height>
     </rect>
    </property>
+   <property name="minimumSize">
+    <size>
+     <width>151</width>
+     <height>41</height>
+    </size>
+   </property>
+   <property name="maximumSize">
+    <size>
+     <width>151</width>
+     <height>41</height>
+    </size>
+   </property>
    <property name="value">
     <number>24</number>
    </property>
@@ -136,7 +148,7 @@
     <string>试管：</string>
    </property>
   </widget>
-  <widget class="QWidget" name="">
+  <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
      <x>880</x>
@@ -196,7 +208,7 @@
     </item>
    </layout>
   </widget>
-  <widget class="QWidget" name="">
+  <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
      <x>880</x>

@@ -26,9 +26,12 @@ GLWidget::GLWidget(QWidget* parent)
     connect(serialTimer, SIGNAL(timeout()), this, SLOT(sendCommand()));
     openSerialPort();
     //originTransducerPos = vec3f(50.0f, -200.0f, 100.0f);
-    originTransducerPos = vec3f(20.0f, -150.0f, 100.0f);
-    originTransducerDir = vec3f(0.64084805f, -0.68662291f, 0.34331146f);
-    originTransducerHor = vec3f(0.73105527f, -0.68231825f, 0.0f);
+    originTransducerPos = vec3f(38.0f, -221.0f, 130.0f);
+
+    //vec3f endPos = vec3f()
+
+    originTransducerDir = vec3f(-0.586f, 0.785991f, 0.197033f);
+    originTransducerHor = vec3f(0.602517f, 0.260058f, 0.754548f);
     originTransducerVer = normalize(cross(originTransducerHor, originTransducerDir));
 
     originTransducerAngle = 120.0;
@@ -39,9 +42,21 @@ GLWidget::~GLWidget() {
 	//if(imageData != nullptr)delete[] imageData;
  //   if (texture != nullptr) delete texture;
 	//imageData = nullptr;
-    qDebug() << "imageData clean\n";
-    if(usRenderer != nullptr) delete usRenderer;
-    if (serialTimer != nullptr)delete serialTimer;
+    qDebug() << "!!!delete GLwidget\n";
+    if (usRenderer != nullptr) {
+        delete usRenderer;
+        usRenderer = nullptr;
+    }
+    if (serial != nullptr) {
+        delete serial;
+        serial = nullptr;
+    }
+    if (serialTimer != nullptr) {
+        delete serialTimer;
+        serialTimer = nullptr;
+    }
+
+
     hdStopScheduler();
     hdUnschedule(hForceGLCallback);
     hdDisableDevice(hHD);
@@ -52,11 +67,11 @@ void GLWidget::closeEvent(QCloseEvent*) {
     //hdStopScheduler();
     //hdUnschedule(hForceCallback);
     //hdDisableDevice(hHD);
-    if (startRender) {
-        hdStopScheduler();
-    }
-    hdUnschedule(hForceGLCallback);
-    hdDisableDevice(hHD);
+    //if (startRender) {
+    //    hdStopScheduler();
+    //}
+    //hdUnschedule(hForceGLCallback);
+    //hdDisableDevice(hHD);
     emit ExitWin();
 }
 
@@ -246,7 +261,7 @@ void GLWidget::paintGL()
         }
 
         
-        if (needleSwitch && collideModel > 5) {
+        if (needleSwitch && collideModel > 6) {
             usRenderer->updateAccel();
             tubeCapacity = (tubeCapacity + 1) % 100;
             emit nowCapacity(tubeCapacity);
@@ -262,8 +277,8 @@ void GLWidget::paintGL()
         usRenderer->downloadCollideInfo();
         collideModel = usRenderer->getCollideModel();
         //qDebug() << "[INFO]Model: " << collideModel;
-        if(collideModel < 4 && collideModel >=0)emit collideInfo(collideModel);//0,1,2,3 for other model;
-        if (collideModel < 6 && needleSwitch)emit collideInfo(10);//error using needleswitch;
+        if(collideModel < 5 && collideModel >=0)emit collideInfo(collideModel);//0,1,2,3,4 for other model;
+        if (collideModel < 7 && needleSwitch)emit collideInfo(10);//error using needleswitch;
         
 
         float needleStartX = 0.0;
@@ -286,20 +301,20 @@ void GLWidget::paintGL()
         glBegin(GL_LINES);
         glColor3f(0.9, 0.9, 0.9);
         glVertex2f(needleStartX, needleStartY);
-        glVertex2f(needleEndX, needleEndY);
+        glVertex2f(needleEndX + 0.01, needleEndY - 0.01);
         glEnd();
 
         glBegin(GL_LINES);
         glColor3f(0.9, 0.9, 0.9);
         glVertex2f(needleStartX, needleStartY+0.02);
-        glVertex2f(needleEndX, needleEndY+0.02);
+        glVertex2f(needleEndX + 0.01, needleEndY + 0.01);
         glEnd();
 
         glPointSize(3.0);                   // 点大小
         glColor3f(1.0, 1.0, 1.0);           // 黄色
         glBegin(GL_POINTS);
-        glVertex2f(needleEndX - 0.01, needleEndY + 0.01);               // 原线段末端延伸点
-        glVertex2f(needleEndX - 0.01, needleEndY + 0.03); // 平移线段末端延伸点
+        glVertex2f(needleEndX  , needleEndY);               // 原线段末端延伸点
+        glVertex2f(needleEndX  , needleEndY + 0.02); // 平移线段末端延伸点
         glEnd();
 
     }
@@ -319,10 +334,10 @@ void GLWidget::setImage()
 {
     if (startRender) {
         if (controlMode == 2) {
-            float changeRow = DeviceWidgetInfo.angles[0] - originDeviceAngles.x;
+            float changeYaw = DeviceWidgetInfo.angles[0] - originDeviceAngles.x;
             float changePitch = DeviceWidgetInfo.angles[1] - originDeviceAngles.y;
-            float changeYaw = DeviceWidgetInfo.angles[2] - originDeviceAngles.z;
-            usRenderer->changeTransducerAbs(changeRow , -changePitch, changeYaw , originTransducerDir, originTransducerHor, originTransducerVer);
+            float changeRow = DeviceWidgetInfo.angles[2] - originDeviceAngles.z;
+            usRenderer->changeTransducerAbs(floor(changeYaw), -floor(changePitch), floor(changeRow), originTransducerDir, originTransducerHor, originTransducerVer);
             //usRenderer->changeTransducerAbs(changeRow, -changePitch, 0.0);
             usRenderer->changeNeedleAbs((1024 - needleDepth) / 1024.0 );
         }
@@ -335,6 +350,8 @@ void GLWidget::setImage()
         update();
     }
 }
+
+
 
 void GLWidget::setStartRenderTrue() {
 
