@@ -7,20 +7,20 @@ GLWidget::GLWidget(QWidget* parent)
 	: QOpenGLWidget(parent)
 {
     setAttribute(Qt::WA_DeleteOnClose);
-    hHD = hdInitDevice(HD_DEFAULT_DEVICE);
-    if (HD_DEVICE_ERROR(error = hdGetError()))
-    {
-        qDebug() << " Failed to initialize haptic device ";
-        //hduPrintError(stderr, &error, "Failed to initialize haptic device");
-    }
-    // Start the servo scheduler and enable forces.
-    hdEnable(HD_FORCE_OUTPUT);
-    hdStartScheduler();
-    if (HD_DEVICE_ERROR(error = hdGetError()))
-    {
-        qDebug() << "Failed to start the scheduler";
-        //hduPrintError(stderr, &error, "Failed to start the scheduler");
-    }
+    //hHD = hdInitDevice(HD_DEFAULT_DEVICE);
+    //if (HD_DEVICE_ERROR(error = hdGetError()))
+    //{
+    //    qDebug() << " Failed to initialize haptic device ";
+    //    //hduPrintError(stderr, &error, "Failed to initialize haptic device");
+    //}
+    //// Start the servo scheduler and enable forces.
+    //hdEnable(HD_FORCE_OUTPUT);
+    //hdStartScheduler();
+    //if (HD_DEVICE_ERROR(error = hdGetError()))
+    //{
+    //    qDebug() << "Failed to start the scheduler";
+    //    //hduPrintError(stderr, &error, "Failed to start the scheduler");
+    //}
     serial = new QSerialPort(this);
     serialTimer = new QTimer();
     connect(serialTimer, SIGNAL(timeout()), this, SLOT(sendCommand()));
@@ -57,9 +57,9 @@ GLWidget::~GLWidget() {
     }
 
 
-    hdStopScheduler();
-    hdUnschedule(hForceGLCallback);
-    hdDisableDevice(hHD);
+    //hdStopScheduler();
+    //hdUnschedule(hForceGLCallback);
+    //hdDisableDevice(hHD);
    
 }
 
@@ -286,16 +286,31 @@ void GLWidget::paintGL()
         float needleEndX = usRenderer->getNeedleEndX(needleStartX);
         float needleEndY = usRenderer->getNeedleEndY(needleStartY);
 
+        float scaleFactor = 1.5f;//画面缩放因子
+
 
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, frameSizeWidth, frameSizeHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, usRenderer->pixelsData());
         glEnable(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, displayTexture);
+
+        // 保存当前的变换矩阵
+        glPushMatrix();
+        // 平移到缩放中心
+        glTranslatef(0.0f, -1.0f, 0.0f);
+        // 应用缩放变换
+        glScalef(scaleFactor, scaleFactor, 1.0f);
+        // 平移回原来的位置
+        glTranslatef(0.0f, 1.0f, 0.0f);
+
         glBegin(GL_QUADS);
         glTexCoord2f(0, 0); glVertex2f(-1, -1);
         glTexCoord2f(1, 0); glVertex2f(1, -1);
         glTexCoord2f(1, 1); glVertex2f(1, 1);
         glTexCoord2f(0, 1); glVertex2f(-1, 1);
         glEnd();
+
+        // 恢复原来的变换矩阵
+        glPopMatrix();
         glDisable(GL_TEXTURE_2D);
 
         glBegin(GL_LINES);

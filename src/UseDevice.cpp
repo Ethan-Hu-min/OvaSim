@@ -59,10 +59,12 @@ HDCallbackCode HDCALLBACK ForceDeviceCallback(void* data)
     double distance = (position - spherePosition).magnitude();
     hduVector3Dd forceDirection = (spherePosition - position) / distance;
     hduVector3Dd x;
-    if (distance < 10) x = distance * forceDirection;
-    else x = 10 * forceDirection;
-    hduVector3Dd f = nowInfo -> dampingForce * x;
-
+    if (distance < 30) x = distance * forceDirection;
+    else x = 30 * forceDirection;
+    //x = distance * forceDirection;
+    //hduVector3Dd f = nowInfo -> dampingForce * x;
+    hduVector3Dd f = 0.1 * x;
+    
 
     hduVector3Dd diffAngles = sphereAngle - angles;
     hduVector3Dd t = nowInfo -> dampingTorque *1000*  diffAngles;
